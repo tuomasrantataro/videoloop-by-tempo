@@ -11,6 +11,10 @@
 #include <QString>
 #include <QLabel>
 #include <QComboBox>
+#include <QJsonObject>
+#include <QJsonDocument>
+#include <QJsonValue>
+#include <QFile>
 #include <vector>
 
 class VulkanWindow;
@@ -33,6 +37,9 @@ public slots:
     void updateLowerTempoLimit();
     void updateUpperTempoLimit();
 
+    void readSettings();
+    void saveSettings();
+
 private:
     VulkanWindow *m_window;
 
@@ -44,13 +51,13 @@ private:
     QLineEdit *upperBpmLine;
     QComboBox *audioSelect;
 
-    float m_tempoLowerLimit = 60.0;
-    float m_tempoUpperLimit = 120.0;
+    float m_tempoLowerLimit = 20.0;
+    float m_tempoUpperLimit = 300.0;
 
     float m_tempo = 60.0;
     float m_tempoLimited = m_tempo;
 
-    QString defaultDevice = QString("alsa_output.pci-0000_00_1f.3.analog-stereo.monitor");
+    QString m_device;
     AudioDevice *m_audio;
 
     RhythmExtractor *m_rhythm;

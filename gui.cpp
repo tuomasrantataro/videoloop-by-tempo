@@ -10,12 +10,6 @@ MainWindow::MainWindow(VulkanWindow *vulkanWindow) : m_window(vulkanWindow)
 {
     QWidget *wrapper = QWidget::createWindowContainer(vulkanWindow);
 
-    m_rhythm = new RhythmExtractor();
-    connect(m_rhythm, &RhythmExtractor::tempoReady, this, &MainWindow::autoUpdateTempo);
-
-    m_audio = new AudioDevice(this, defaultDevice);
-    connect(m_audio, &AudioDevice::dataReady, this, &MainWindow::calculateTempo);
-
     lockCheckBox = new QCheckBox(tr("Manual tempo"));
     connect(lockCheckBox, &QPushButton::clicked, this, &MainWindow::updateLockCheckbox);
 
@@ -36,7 +30,7 @@ MainWindow::MainWindow(VulkanWindow *vulkanWindow) : m_window(vulkanWindow)
     connect(upperBpmLine, &QLineEdit::editingFinished, this, &MainWindow::updateUpperTempoLimit);
 
     QPushButton *saveButton = new QPushButton(tr("Save settings"));
-    //connect
+    connect(saveButton, &QPushButton::clicked, this, &MainWindow::saveSettings);
 
     QHBoxLayout *tempoControlLayout = new QHBoxLayout;
     tempoControlLayout->addWidget(lockCheckBox, 3);
@@ -59,6 +53,14 @@ MainWindow::MainWindow(VulkanWindow *vulkanWindow) : m_window(vulkanWindow)
     layout->addLayout(tempoControlLayout, 1);
     layout->addLayout(audioSelectLayout, 1);
     setLayout(layout);
+
+    readSettings();
+
+    m_rhythm = new RhythmExtractor();
+    connect(m_rhythm, &RhythmExtractor::tempoReady, this, &MainWindow::autoUpdateTempo);
+
+    m_audio = new AudioDevice(this, m_device);
+    connect(m_audio, &AudioDevice::dataReady, this, &MainWindow::calculateTempo);
 }
 
 void MainWindow::updateTempo()
@@ -183,4 +185,64 @@ void MainWindow::updateUpperTempoLimit()
         }
     }
     upperBpmLine->setText(QString::number(m_tempoUpperLimit, 'f', 1));
+}
+
+void MainWindow::readSettings()
+{
+    QFile loadFile(QStringLiteral("settings.JSON"));
+
+    if (!loadFile.open(QIODevice::ReadOnly)) {
+        qWarning("Couldn't open settings.JSON");
+        return;
+    }
+
+    QString settingsData = loadFile.readAll();
+
+    QJsonDocument loadDoc(QJsonDocument::fromJson(settingsData.toUtf8()));
+
+    if (!loadDoc.isObject()) {
+        qWarning("Malformed settings JSON file.");
+        return;
+    }
+
+    QJsonObject values = loadDoc.object();
+
+    QJsonValue device = values["default_device"];
+    QJsonValue limitTempo = values["limit_tempo_by_default"];
+    QJsonValue lowerLimit = values["tempo_lower_limit"];
+    QJsonValue upperLimit = values["tempo_upper_limit"];
+
+    if (!device.isUndefined()) {
+        m_device = device.toString();
+    }
+    if (!limitTempo.isUndefined()) {
+        limitCheckBox->setChecked(limitTempo.toBool());
+    }
+    if (!lowerLimit.isUndefined()) {
+        lowerBpmLine->setText(QString::number(lowerLimit.toDouble(), 'f', 1));
+        updateLowerTempoLimit();
+    }
+    if (!upperLimit.isUndefined()) {
+        upperBpmLine->setText(QString::number(upperLimit.toDouble(), 'f', 1));
+        updateUpperTempoLimit();
+    }
+}
+
+void MainWindow::saveSettings()
+{
+    QFile saveFile("settings.JSON");
+
+    if (!saveFile.open(QIODevice::WriteOnly)) {
+        qWarning("Coudn't open settings file for saving.");
+        return;
+    }
+
+    QJsonObject settingsData;
+
+    settingsData["default_device"] = qPrintable(m_device);
+    settingsData["limit_tempo_by_default"] = limitCheckBox->isChecked();
+    settingsData["tempo_lower_limit"] = m_tempoLowerLimit;
+    settingsData["tempo_upper_limit"] = m_tempoUpperLimit;
+
+    saveFile.write(QJsonDocument(settingsData).toJson());
 }
