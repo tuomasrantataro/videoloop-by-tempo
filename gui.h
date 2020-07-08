@@ -21,12 +21,17 @@ public:
     MainWindow(VulkanWindow *vulkanWindow);
 
     void manualUpdateTempo();
-    void updateTempo(float bpm);
     void updateLockCheckbox();
 
+    void setTempoLimited();
+
 public slots:
+    void updateTempo();
     void autoUpdateTempo(std::pair<float, float> tempoPair);
     void calculateTempo(std::vector<uint8_t> audioData);
+
+    void updateLowerTempoLimit();
+    void updateUpperTempoLimit();
 
 private:
     VulkanWindow *m_window;
@@ -35,12 +40,15 @@ private:
     QPalette setBpmLinePalette;
     QCheckBox *lockCheckBox;
     QCheckBox *limitCheckBox;
+    QLineEdit *lowerBpmLine;
+    QLineEdit *upperBpmLine;
     QComboBox *audioSelect;
 
-    float tempoLowerLimit = 60.0;
-    float tempoUpperLimit = 120.0;
+    float m_tempoLowerLimit = 60.0;
+    float m_tempoUpperLimit = 120.0;
 
     float m_tempo = 60.0;
+    float m_tempoLimited = m_tempo;
 
     QString defaultDevice = QString("alsa_output.pci-0000_00_1f.3.analog-stereo.monitor");
     AudioDevice *m_audio;

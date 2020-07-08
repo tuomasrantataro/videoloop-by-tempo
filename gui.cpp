@@ -19,8 +19,7 @@ MainWindow::MainWindow(VulkanWindow *vulkanWindow) : m_window(vulkanWindow)
     lockCheckBox = new QCheckBox(tr("Manual tempo"));
     connect(lockCheckBox, &QPushButton::clicked, this, &MainWindow::updateLockCheckbox);
 
-    float old_bpm = 126.34;
-    setBpmLine = new QLineEdit(QString::number(old_bpm, 'f', 1));
+    setBpmLine = new QLineEdit(QString::number(m_tempo, 'f', 1));
     setBpmLine->setMaxLength(5);
     setBpmLinePalette = QPalette();
     setBpmLinePalette.setColor(QPalette::Text, Qt::gray);
@@ -28,15 +27,13 @@ MainWindow::MainWindow(VulkanWindow *vulkanWindow) : m_window(vulkanWindow)
     connect(setBpmLine, &QLineEdit::returnPressed, this, &MainWindow::manualUpdateTempo);
 
     limitCheckBox = new QCheckBox(tr("Limit tempo between:"));
-    //connect
+    connect(limitCheckBox, &QCheckBox::clicked, this, &MainWindow::updateTempo);
 
-    float lower = 60.0;
-    QLineEdit *lowerBpmEdit = new QLineEdit(QString::number(lower, 'f', 1));
-    //connect
+    lowerBpmLine = new QLineEdit(QString::number(m_tempoLowerLimit, 'f', 1));
+    connect(lowerBpmLine, &QLineEdit::editingFinished, this, &MainWindow::updateLowerTempoLimit);
 
-    float upper = 120.0;
-    QLineEdit *upperBpmEdit = new QLineEdit(QString::number(upper, 'f', 1));
-    //connect
+    upperBpmLine = new QLineEdit(QString::number(m_tempoUpperLimit, 'f', 1));
+    connect(upperBpmLine, &QLineEdit::editingFinished, this, &MainWindow::updateUpperTempoLimit);
 
     QPushButton *saveButton = new QPushButton(tr("Save settings"));
     //connect
@@ -45,8 +42,8 @@ MainWindow::MainWindow(VulkanWindow *vulkanWindow) : m_window(vulkanWindow)
     tempoControlLayout->addWidget(lockCheckBox, 3);
     tempoControlLayout->addWidget(setBpmLine, 1);
     tempoControlLayout->addWidget(limitCheckBox, 3);
-    tempoControlLayout->addWidget(lowerBpmEdit, 1);
-    tempoControlLayout->addWidget(upperBpmEdit, 1);
+    tempoControlLayout->addWidget(lowerBpmLine, 1);
+    tempoControlLayout->addWidget(upperBpmLine, 1);
     tempoControlLayout->addWidget(saveButton, 3);
 
     QLabel *audioLabel = new QLabel(tr("Audio Device:"));
@@ -64,10 +61,31 @@ MainWindow::MainWindow(VulkanWindow *vulkanWindow) : m_window(vulkanWindow)
     setLayout(layout);
 }
 
-void MainWindow::updateTempo(float bpm)
+void MainWindow::updateTempo()
 {
-    m_window->setBpm(bpm);
-    setBpmLine->setText(QString::number(m_tempo, 'f', 1));
+    float tempo;
+
+    if (limitCheckBox->isChecked()) {
+        tempo = m_tempoLimited;
+    } else {
+        tempo = m_tempo;
+    }
+
+    m_window->setBpm(tempo);
+    setBpmLine->setText(QString::number(tempo, 'f', 1));
+}
+
+void MainWindow::setTempoLimited()
+{
+    float tempo = m_tempo;
+    while (tempo < m_tempoLowerLimit) {
+        tempo = tempo * 2.0;
+    }
+    while (tempo > m_tempoUpperLimit) {
+        tempo = tempo / 2.0;
+    }
+
+    m_tempoLimited = tempo;
 }
 
 void MainWindow::autoUpdateTempo(tempoPair tempoData)
@@ -77,7 +95,7 @@ void MainWindow::autoUpdateTempo(tempoPair tempoData)
     be close to each other.*/
 
     float tempo = tempoData.first;
-    m_tempo = tempo;
+    float tempoLimited = tempo;
     const float confidence = tempoData.second;
 
     if (lockCheckBox->isChecked()) {
@@ -87,16 +105,10 @@ void MainWindow::autoUpdateTempo(tempoPair tempoData)
         return;
     }
 
-    if (limitCheckBox->isChecked()) {
-        while (tempo < tempoLowerLimit) {
-            tempo = tempo * 2.0;
-        }
-        while (tempo > tempoUpperLimit) {
-            tempo = tempo / 2.0;
-        }
-    }
+    m_tempo = tempo;
+    setTempoLimited();
 
-    updateTempo(tempo);
+    updateTempo();
 }
 
 void MainWindow::manualUpdateTempo()
@@ -104,11 +116,13 @@ void MainWindow::manualUpdateTempo()
     QString bpmText = setBpmLine->text();
 
     bool success;
-    float bpm = bpmText.toFloat(&success);
+    float tempo = bpmText.toFloat(&success);
 
     if (success) {
-        if (bpm > 1.0) {
-            updateTempo(bpm);
+        if (tempo > 1.0) {
+            m_tempo = tempo;
+            setTempoLimited();
+            updateTempo();
         }
     }
 }
@@ -131,4 +145,42 @@ void MainWindow::updateLockCheckbox()
 void MainWindow::calculateTempo(std::vector<uint8_t> data)
 {
     m_rhythm->calculateTempo(data);
+}
+
+void MainWindow::updateLowerTempoLimit()
+{
+    QString boxText = lowerBpmLine->text();
+
+    bool success;
+    float limit = boxText.toFloat(&success);
+
+    if (success) {
+        if (limit > 0.0) {
+            // Keep at least 1 octave  between lower and upper limits
+            if (limit > m_tempoUpperLimit/2.0) {
+                limit = m_tempoUpperLimit/2.0;
+            }
+            m_tempoLowerLimit = limit;
+        }
+    }
+    lowerBpmLine->setText(QString::number(m_tempoLowerLimit, 'f', 1));
+}
+
+void MainWindow::updateUpperTempoLimit()
+{
+    QString boxText = upperBpmLine->text();
+
+    bool success;
+    float limit = boxText.toFloat(&success);
+
+    if (success) {
+        if (limit > 1.0 && limit < 300.0) {
+            // Keep at least 1 octave between lower and upper limits
+            if (limit < m_tempoLowerLimit*2.0) {
+                limit = m_tempoLowerLimit*2.0;
+            }
+            m_tempoUpperLimit = limit;
+        }
+    }
+    upperBpmLine->setText(QString::number(m_tempoUpperLimit, 'f', 1));
 }
