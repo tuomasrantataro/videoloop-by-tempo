@@ -9,6 +9,8 @@
 #include <QCheckBox>
 #include <QPalette>
 #include <QString>
+#include <QLabel>
+#include <QComboBox>
 #include <vector>
 
 class VulkanWindow;
@@ -18,14 +20,13 @@ class MainWindow : public QWidget
 public:
     MainWindow(VulkanWindow *vulkanWindow);
 
-    void updateBpmManually();
-    void updateBpm(float bpm, bool manual=false);
-    void changePlayBackRate(float);
+    void manualUpdateTempo();
+    void updateTempo(float bpm);
     void updateLockCheckbox();
 
 public slots:
-    void autoUpdateBpm(std::pair<float, float> tempo);
-    void calculateBPM(std::vector<uint8_t> data);
+    void autoUpdateTempo(std::pair<float, float> tempoPair);
+    void calculateTempo(std::vector<uint8_t> audioData);
 
 private:
     VulkanWindow *m_window;
@@ -34,9 +35,12 @@ private:
     QPalette setBpmLinePalette;
     QCheckBox *lockCheckBox;
     QCheckBox *limitCheckBox;
+    QComboBox *audioSelect;
+
     float tempoLowerLimit = 60.0;
     float tempoUpperLimit = 120.0;
-    float oldBpm = 60.0;
+
+    float m_tempo = 60.0;
 
     QString defaultDevice = QString("alsa_output.pci-0000_00_1f.3.analog-stereo.monitor");
     AudioDevice *m_audio;

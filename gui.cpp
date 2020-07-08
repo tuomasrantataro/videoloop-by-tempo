@@ -11,10 +11,10 @@ MainWindow::MainWindow(VulkanWindow *vulkanWindow) : m_window(vulkanWindow)
     QWidget *wrapper = QWidget::createWindowContainer(vulkanWindow);
 
     m_rhythm = new RhythmExtractor();
-    connect(m_rhythm, &RhythmExtractor::tempoReady, this, &MainWindow::autoUpdateBpm);
+    connect(m_rhythm, &RhythmExtractor::tempoReady, this, &MainWindow::autoUpdateTempo);
 
     m_audio = new AudioDevice(this, defaultDevice);
-    connect(m_audio, &AudioDevice::dataReady, this, &MainWindow::calculateBPM);
+    connect(m_audio, &AudioDevice::dataReady, this, &MainWindow::calculateTempo);
 
     lockCheckBox = new QCheckBox(tr("Manual tempo"));
     connect(lockCheckBox, &QPushButton::clicked, this, &MainWindow::updateLockCheckbox);
@@ -25,7 +25,7 @@ MainWindow::MainWindow(VulkanWindow *vulkanWindow) : m_window(vulkanWindow)
     setBpmLinePalette = QPalette();
     setBpmLinePalette.setColor(QPalette::Text, Qt::gray);
     setBpmLine->setPalette(setBpmLinePalette);
-    connect(setBpmLine, &QLineEdit::returnPressed, this, &MainWindow::updateBpmManually);
+    connect(setBpmLine, &QLineEdit::returnPressed, this, &MainWindow::manualUpdateTempo);
 
     limitCheckBox = new QCheckBox(tr("Limit tempo between:"));
     //connect
@@ -49,51 +49,57 @@ MainWindow::MainWindow(VulkanWindow *vulkanWindow) : m_window(vulkanWindow)
     tempoControlLayout->addWidget(upperBpmEdit, 1);
     tempoControlLayout->addWidget(saveButton, 3);
 
+    QLabel *audioLabel = new QLabel(tr("Audio Device:"));
+
+    audioSelect = new QComboBox;
+
+    QHBoxLayout *audioSelectLayout = new QHBoxLayout;
+    audioSelectLayout->addWidget(audioLabel);
+    audioSelectLayout->addWidget(audioSelect);
+
     QVBoxLayout *layout = new QVBoxLayout;
     layout->addWidget(wrapper, 5);
     layout->addLayout(tempoControlLayout, 1);
+    layout->addLayout(audioSelectLayout, 1);
     setLayout(layout);
 }
 
-void MainWindow::changePlayBackRate(float bpm)
+void MainWindow::updateTempo(float bpm)
 {
-    if (int(bpm) != int(oldBpm)) {
-        //qWarning("bpm to change: %f", bpm);
-        oldBpm = bpm;
-        m_window->setBpm(bpm);
-    }
+    m_window->setBpm(bpm);
+    setBpmLine->setText(QString::number(m_tempo, 'f', 1));
 }
 
-void MainWindow::autoUpdateBpm(tempoPair tempo)
+void MainWindow::autoUpdateTempo(tempoPair tempoData)
 {
-    if (tempo.second > 3.0) {
-        updateBpm(tempo.first, false);
-    }
-}
+    /*TODO: Add filtering. Essentia sometimes outputs single values which vary significantly from
+    others, making playback speed jumpy. To fix this, for example require two subsequent values to
+    be close to each other.*/
 
-void MainWindow::updateBpm(float bpm, bool manual)
-{
-    if (!manual) {
-        if (lockCheckBox->isChecked()) {
-            return;
-        }
-        bpm = float(int(bpm + 0.5));
+    float tempo = tempoData.first;
+    m_tempo = tempo;
+    const float confidence = tempoData.second;
+
+    if (lockCheckBox->isChecked()) {
+        return;
     }
+    if (confidence < 3.0) {
+        return;
+    }
+
     if (limitCheckBox->isChecked()) {
-        while (bpm < tempoLowerLimit) {
-            bpm = bpm * 2.0;
+        while (tempo < tempoLowerLimit) {
+            tempo = tempo * 2.0;
         }
-        while (bpm > tempoUpperLimit) {
-            bpm = bpm / 2.0;
+        while (tempo > tempoUpperLimit) {
+            tempo = tempo / 2.0;
         }
     }
 
-    changePlayBackRate(bpm);
-    setBpmLine->setText(QString::number(oldBpm, 'f', 1));
-
+    updateTempo(tempo);
 }
 
-void MainWindow::updateBpmManually()
+void MainWindow::manualUpdateTempo()
 {
     QString bpmText = setBpmLine->text();
 
@@ -102,7 +108,7 @@ void MainWindow::updateBpmManually()
 
     if (success) {
         if (bpm > 1.0) {
-            updateBpm(bpm, true);
+            updateTempo(bpm);
         }
     }
 }
@@ -122,7 +128,7 @@ void MainWindow::updateLockCheckbox()
     }
 }
 
-void MainWindow::calculateBPM(std::vector<uint8_t> data)
+void MainWindow::calculateTempo(std::vector<uint8_t> data)
 {
     m_rhythm->calculateTempo(data);
 }

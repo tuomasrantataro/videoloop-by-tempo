@@ -61,12 +61,10 @@ void RhythmExtractor::run()
     essentia::scheduler::Network network(&input, false);
     network.run();
 
-    float bpm = float(int(pool.value<essentia::Real>("rhythm.bpm")+ 0.5)); // round the value
+    float bpm = float(pool.value<essentia::Real>("rhythm.bpm"));
     float confidence = float(pool.value<essentia::Real>("rhythm.ticks_confidence"));
 
-    //if (pool.value<essentia::Real>("rhythm.ticks_confidence") > 3.0) {
-        emit tempoReady(tempoPair(bpm, confidence));
-    //}
+    emit tempoReady(tempoPair(bpm, confidence));
 
     delete rhythmextractor;
     essentia::shutdown();
