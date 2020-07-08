@@ -19,28 +19,30 @@ public:
     AudioDevice(QObject *parent, QString defaultDevice);
     ~AudioDevice();
 
+    QStringList getAudioDevices();
+    QString getCurrentDevice() { return m_device.deviceName(); }
+
 public slots:
     void changeAudioInput(QString inputName);
     void writeToBuffer();
 
 signals:
     void dataReady(std::vector<uint8_t> data);
-    void audioInputs(QObject*);
 
 private:
+    void setupDevice(QString deviceName);
+
     QObject *parent;
-    QString m_deviceName;
     QTimer *m_pullTimer;
 
     QList<QAudioDeviceInfo> m_monitors;
     QAudioDeviceInfo m_device;
-
+    
     QAudioFormat m_format;
 
     QAudioInput *m_audioInput;
     QIODevice *m_input;
     AudioDataHandler *m_audioDataHandler;
-    
 };
 
 #endif

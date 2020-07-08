@@ -1,17 +1,26 @@
 #include "audiodevice.h"
 #include <QList>
 
-AudioDevice::AudioDevice(QObject *parent, QString defaultDevice) : parent(parent), m_deviceName(defaultDevice)
+AudioDevice::AudioDevice(QObject *parent, QString defaultDevice) : parent(parent)
 {
     m_pullTimer = new QTimer();
     m_pullTimer->setInterval(1000);
     connect(m_pullTimer, &QTimer::timeout, this, &AudioDevice::writeToBuffer);
 
+    setupDevice(defaultDevice);
+}
+
+AudioDevice::~AudioDevice()
+{
+    delete m_audioDataHandler;
+}
+
+void AudioDevice::setupDevice(QString deviceName)
+{
     QList<QAudioDeviceInfo> devices = QAudioDeviceInfo::availableDevices(QAudio::AudioInput);
-    //qWarning("%d audio input devices found.", devices.count());
 
     for (auto it = devices.begin(); it != devices.end(); it++) {
-        if (it->deviceName().compare(defaultDevice) == 0) {
+        if (it->deviceName().compare(deviceName) == 0) {
             m_monitors.push_front(*it);
         } else if (it->deviceName().endsWith("monitor")) {
             m_monitors.append(*it);
@@ -19,18 +28,14 @@ AudioDevice::AudioDevice(QObject *parent, QString defaultDevice) : parent(parent
     }
 
     if (m_monitors.count() == 0) {
-        qWarning("Default device or audio monitors were not found. Using system default audio input.");
+        qWarning("No device preferred by settings.JSON or any other sound monitors found.");
+        qWarning("Using system default audio input (most likely a microphone)");
         m_monitors.append(QAudioDeviceInfo::defaultInputDevice());
-    }
-
-    qWarning("Monitors found:");
-    for (auto it = m_monitors.begin(); it != m_monitors.end(); it++) {
-        qWarning("%s", qPrintable(it->deviceName()));
     }
 
     m_device = m_monitors[0];
 
-    qWarning("Using audio output: %s", qPrintable(m_device.deviceName()));
+    qDebug("Using audio output: %s", qPrintable(m_device.deviceName()));
 
     m_format.setSampleRate(44100);
     m_format.setChannelCount(1);
@@ -53,18 +58,27 @@ AudioDevice::AudioDevice(QObject *parent, QString defaultDevice) : parent(parent
     m_audioInput->start(m_audioDataHandler);
     m_input = m_audioInput->start();
     m_pullTimer->start();
-
 }
 
-AudioDevice::~AudioDevice()
+QStringList AudioDevice::getAudioDevices()
 {
-    delete m_audioDataHandler;
+    QStringList deviceNames;
+    for (auto it = m_monitors.begin(); it != m_monitors.end(); it++) {
+        deviceNames.append(it->deviceName());
+    }
+
+    return deviceNames;
 }
 
 void AudioDevice::changeAudioInput(QString deviceName)
 {
-    qWarning("Not implemented: Change audio device to %s", qPrintable(deviceName));
-    return;
+    // delete old objects
+    m_pullTimer->stop();
+    m_monitors.clear();
+    delete m_audioInput;
+    delete m_audioDataHandler;
+
+    setupDevice(deviceName);
 }
 
 void AudioDevice::writeToBuffer()
@@ -73,6 +87,5 @@ void AudioDevice::writeToBuffer()
     if (length > 0) {
         m_audioDataHandler->writeData(m_input->readAll(), length);
     }
-    return;
 }
 

@@ -61,6 +61,12 @@ MainWindow::MainWindow(VulkanWindow *vulkanWindow) : m_window(vulkanWindow)
 
     m_audio = new AudioDevice(this, m_device);
     connect(m_audio, &AudioDevice::dataReady, this, &MainWindow::calculateTempo);
+
+    QStringList audioDevices = m_audio->getAudioDevices();
+    for (auto it = audioDevices.begin(); it != audioDevices.end(); it++) {
+        audioSelect->addItem(*it);
+    }
+    connect(audioSelect, &QComboBox::currentTextChanged, m_audio, &AudioDevice::changeAudioInput);
 }
 
 void MainWindow::updateTempo()
@@ -239,7 +245,7 @@ void MainWindow::saveSettings()
 
     QJsonObject settingsData;
 
-    settingsData["default_device"] = qPrintable(m_device);
+    settingsData["default_device"] = m_audio->getCurrentDevice();
     settingsData["limit_tempo_by_default"] = limitCheckBox->isChecked();
     settingsData["tempo_lower_limit"] = m_tempoLowerLimit;
     settingsData["tempo_upper_limit"] = m_tempoUpperLimit;
