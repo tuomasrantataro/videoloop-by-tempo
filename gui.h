@@ -15,12 +15,15 @@
 #include <QJsonDocument>
 #include <QJsonValue>
 #include <QFile>
+#include <QVBoxLayout>
+#include <QHBoxLayout>
 #include <vector>
 
 class VulkanWindow;
 
 class MainWindow : public QWidget
 {
+    Q_OBJECT
 public:
     MainWindow(VulkanWindow *vulkanWindow);
 
@@ -40,8 +43,13 @@ public slots:
     void readSettings();
     void saveSettings();
 
+    void setVideoFullscreen();
+
 private:
     VulkanWindow *m_window;
+    QWidget *m_wrapper;
+
+    QVBoxLayout *m_layout;
 
     QLineEdit *setBpmLine;
     QPalette setBpmLinePalette;

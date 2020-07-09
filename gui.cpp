@@ -2,13 +2,12 @@
 #include "vulkanwindow.h"
 #include <QPushButton>
 #include <QApplication>
-#include <QVBoxLayout>
-#include <QHBoxLayout>
 #include <QPalette>
 
 MainWindow::MainWindow(VulkanWindow *vulkanWindow) : m_window(vulkanWindow)
 {
-    QWidget *wrapper = QWidget::createWindowContainer(vulkanWindow);
+    m_wrapper = QWidget::createWindowContainer(m_window, this);
+    connect(m_window, &VulkanWindow::toggleFullScreen, this, &MainWindow::setVideoFullscreen);
 
     lockCheckBox = new QCheckBox(tr("Manual tempo"));
     connect(lockCheckBox, &QPushButton::clicked, this, &MainWindow::updateLockCheckbox);
@@ -48,11 +47,11 @@ MainWindow::MainWindow(VulkanWindow *vulkanWindow) : m_window(vulkanWindow)
     audioSelectLayout->addWidget(audioLabel);
     audioSelectLayout->addWidget(audioSelect);
 
-    QVBoxLayout *layout = new QVBoxLayout;
-    layout->addWidget(wrapper, 5);
-    layout->addLayout(tempoControlLayout, 1);
-    layout->addLayout(audioSelectLayout, 1);
-    setLayout(layout);
+    m_layout = new QVBoxLayout;
+    m_layout->addWidget(m_wrapper, 5);
+    m_layout->addLayout(tempoControlLayout, 1);
+    m_layout->addLayout(audioSelectLayout, 1);
+    setLayout(m_layout);
 
     readSettings();
 
@@ -251,4 +250,20 @@ void MainWindow::saveSettings()
     settingsData["tempo_upper_limit"] = m_tempoUpperLimit;
 
     saveFile.write(QJsonDocument(settingsData).toJson());
+}
+
+void MainWindow::setVideoFullscreen()
+{
+    qWarning("connected");
+    if (m_wrapper->windowState() == Qt::WindowFullScreen) {
+        m_wrapper->setParent(nullptr);
+        //FIXME: Old m_wrapper is not freed, therefore this leaks some memory.
+        m_wrapper = QWidget::createWindowContainer(m_window, this);
+        m_layout->insertWidget(0, m_wrapper);
+        this->show();
+    } else {
+        m_wrapper->setParent(this, Qt::Tool);
+        this->hide();
+        m_wrapper->showFullScreen();
+    }
 }

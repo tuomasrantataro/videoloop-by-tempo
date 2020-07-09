@@ -18,3 +18,8 @@ void VulkanWindow::setBpm(float f)
         m_renderer->setBpm(f);
     } 
 }
+
+void VulkanWindow::mouseDoubleClickEvent(QMouseEvent *e)
+{
+    emit toggleFullScreen();
+}

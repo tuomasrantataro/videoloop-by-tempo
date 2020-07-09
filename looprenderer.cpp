@@ -83,7 +83,9 @@ bool LoopRenderer::createTextures()
         frameIndexes.push_back(i);
     }
 
+    //FIXME: This causes memory to be reserved twice for the same frames
     frameCount = frameIndexes.size();
+    //frameCount = images.size();
 
     if (frameCount == 0) {
         qWarning("Failed to load frames");
@@ -687,6 +689,10 @@ void LoopRenderer::releaseResources()
     qDebug("releaseResources");
 
     VkDevice dev = m_window->device();
+
+    // Remove old frame indexes so they can be recreated if resources are initialized again.
+    // This happens when the window is minimized/fullscreened and restored to normal window.
+    frameIndexes.clear();
 
     if (m_sampler) {
         m_devFuncs->vkDestroySampler(dev, m_sampler, nullptr);
