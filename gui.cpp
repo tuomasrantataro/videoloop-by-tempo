@@ -271,32 +271,29 @@ void MainWindow::updateUpperTempoLimit(float limit)
 
 void MainWindow::readSettings()
 {
+    QJsonObject values;
+    QJsonDocument loadDoc;
+
     QFile loadFile(QStringLiteral("settings.JSON"));
 
     if (!loadFile.open(QIODevice::ReadOnly)) {
-        qWarning("Couldn't open settings.JSON");
-        return;
+        qWarning("Couldn't open settings.JSON. Using default settings.");
+    } else {
+        QString settingsData = loadFile.readAll();
+        loadDoc = QJsonDocument::fromJson(settingsData.toUtf8());
     }
 
-    QString settingsData = loadFile.readAll();
-
-    QJsonDocument loadDoc(QJsonDocument::fromJson(settingsData.toUtf8()));
-
-    if (!loadDoc.isObject()) {
-        qWarning("Malformed settings.JSON file. Please fix or delete it.");
-        return;
+    if (loadFile.exists() && !loadDoc.isObject()) {
+        qWarning("Malformed settings.JSON file. Using default settings.");
+    } else {
+        values = loadDoc.object();
     }
-
-    QJsonObject values = loadDoc.object();
-    qDebug("settings.JSON read. Using settings:");
-
 
     // Audio device for sound monitoring
     QString device = "";
     if (!values.value("audio_device").isUndefined()) {
         device = values["audio_device"].toString();
     }
-    qDebug("  audo_device: %s", qPrintable(device));
     m_device = device;
 
 
@@ -305,7 +302,6 @@ void MainWindow::readSettings()
     if (!values.value("limit_tempo").isUndefined()) {
         limitTempo = values["limit_tempo"].toBool();
     }
-    qDebug("  limit_tempo: %d", limitTempo);
     m_limitCheckBox->setChecked(limitTempo);
 
 
@@ -317,7 +313,6 @@ void MainWindow::readSettings()
     if (lowerLimit < 1.0) {
         lowerLimit = 1.0;
     }
-    qDebug("  tempo_lower_limit: %f", lowerLimit);
     m_tempoLowerLimit = lowerLimit;
 
     // Tempo upper limit
@@ -328,7 +323,6 @@ void MainWindow::readSettings()
     if (upperLimit < 0) {
         upperLimit = 1.0;
     }
-    qDebug("  tempo_upper_limit: %f", upperLimit);
     m_tempoUpperLimit = upperLimit;
 
     updateLowerTempoLimit(lowerLimit);
@@ -344,7 +338,6 @@ void MainWindow::readSettings()
         screen = 0;
     }
     m_screenNumber = screen;
-    qDebug("  screen: %d", screen);
     m_screenSelect->setCurrentIndex(screen);
 
 
@@ -358,7 +351,6 @@ void MainWindow::readSettings()
     } else if (confidence > 5.0) {
         confidence = 5.0;
     }
-    qDebug("  confidence_threshold: %f", confidence);
     m_confidenceSlider->setValue(int(10*confidence));
 
 
@@ -376,6 +368,15 @@ void MainWindow::readSettings()
     int exp = log2(tempoMultiplier);
     m_tempoMultiplier = tempoMultiplier;
     m_tempoMultiplierSlider->setValue(exp);
+
+
+    qDebug("settings.JSON read. Using settings:");
+    qDebug("  audo_device: %s", qPrintable(device));
+    qDebug("  limit_tempo: %d", limitTempo);
+    qDebug("  tempo_lower_limit: %f", lowerLimit);
+    qDebug("  tempo_upper_limit: %f", upperLimit);
+    qDebug("  screen: %d", screen);
+    qDebug("  confidence_threshold: %f", confidence);
     qDebug("  tempo_multiplier: %f", tempoMultiplier);
 
 }
