@@ -3,6 +3,7 @@
 
 #include "audiodevice.h"
 #include "rhythmextractor.h"
+#include "openglwidget.h"
 
 #include <QWidget>
 #include <QLineEdit>
@@ -11,13 +12,16 @@
 #include <QString>
 #include <QLabel>
 #include <QComboBox>
+#include <QSlider>
 #include <QJsonObject>
 #include <QJsonDocument>
 #include <QJsonValue>
 #include <QFile>
 #include <QVBoxLayout>
 #include <QHBoxLayout>
+#include <QShortcut>
 #include <vector>
+#include <list>
 
 class VulkanWindow;
 
@@ -25,50 +29,71 @@ class MainWindow : public QWidget
 {
     Q_OBJECT
 public:
-    MainWindow(VulkanWindow *vulkanWindow);
+    MainWindow();
+
+private slots:
+    void updateTempo();
 
     void manualUpdateTempo();
+    void toggleManualTempo();
     void updateLockCheckbox();
 
-    void setTempoLimited();
-
-public slots:
-    void updateTempo();
     void autoUpdateTempo(std::pair<float, float> tempoPair);
     void calculateTempo(std::vector<uint8_t> audioData);
+    void setConfidenceLevel(int value);
 
-    void updateLowerTempoLimit();
-    void updateUpperTempoLimit();
+    void setTempoMultiplier(int value);
 
-    void readSettings();
+    void readLowerLimit();
+    void readUpperLimit();
+
+    void setVideoFullScreen();
+    void setScreenNumber(int idx);
+
     void saveSettings();
 
-    void setVideoFullscreen();
-
 private:
-    VulkanWindow *m_window;
-    QWidget *m_wrapper;
+    void setTempoLimited();
+    void updateLowerTempoLimit(float limit);
+    void updateUpperTempoLimit(float limit);
+    void readSettings();
+
+    OpenGLWidget *m_graphicsWidget;
 
     QVBoxLayout *m_layout;
 
-    QLineEdit *setBpmLine;
-    QPalette setBpmLinePalette;
-    QCheckBox *lockCheckBox;
-    QCheckBox *limitCheckBox;
-    QLineEdit *lowerBpmLine;
-    QLineEdit *upperBpmLine;
-    QComboBox *audioSelect;
+    QLineEdit *m_setBpmLine;
+    QPalette m_setBpmLinePalette;
+    QCheckBox *m_lockCheckBox;
+    QCheckBox *m_limitCheckBox;
+    QLineEdit *m_lowerBpmLine;
+    QLineEdit *m_upperBpmLine;
+    QComboBox *m_screenSelect;
+    QList<QScreen*> m_screens;
+    int m_screenNumber;
+    QComboBox *m_audioSelect;
 
-    float m_tempoLowerLimit = 20.0;
-    float m_tempoUpperLimit = 300.0;
+    QSlider *m_confidenceSlider;
+    float m_confidenceLevel;
+
+    QLabel *m_tempoMultiplierLabel;
+    float m_tempoMultiplier;
+    QSlider *m_tempoMultiplierSlider;
+
+    float m_tempoLowerLimit;
+    float m_tempoUpperLimit;
 
     float m_tempo = 60.0;
     float m_tempoLimited = m_tempo;
+
+    std::list<float> m_bpmBuffer{std::list<float>(5, m_tempo)};
 
     QString m_device;
     AudioDevice *m_audio;
 
     RhythmExtractor *m_rhythm;
+
+    QShortcut *m_keySpacebar;
 };
 
 #endif

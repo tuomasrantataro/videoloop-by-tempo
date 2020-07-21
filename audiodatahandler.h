@@ -28,7 +28,6 @@ private:
     QByteArray *m_buffer;
     std::vector<uint8_t> m_data;
 
-    //const int bufferSize = 15000000;
     const int shortBufferSize = 350000;
 };
 
