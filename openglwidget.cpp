@@ -23,6 +23,9 @@ void OpenGLWidget::keyPressEvent(QKeyEvent *e)
     if (e->key() == Qt::Key_Space) {
         emit spacePressed();
     }
+    if (e->key() == Qt::Key_Escape) {
+        emit toggleFullScreen();
+    }
 }
 
 void OpenGLWidget::initializeGL()

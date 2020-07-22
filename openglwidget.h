@@ -26,7 +26,7 @@ public:
     void setBpm(float tempo);
 
     QSize minimumSizeHint() const {
-        return QSize(600, 400);
+        return QSize(400, 300);
     }
 
 signals:

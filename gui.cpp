@@ -14,39 +14,27 @@ MainWindow::MainWindow()
     connect(m_graphicsWidget, &OpenGLWidget::initReady, this, &MainWindow::updateTempo);
     connect(m_graphicsWidget, &OpenGLWidget::spacePressed, this, &MainWindow::toggleManualTempo);
 
+
+    // Layout for setting tempo
+    m_tempoGroup = new QGroupBox(tr("Tempo"));
+
     m_lockCheckBox = new QCheckBox(tr("Manual tempo"));
     connect(m_lockCheckBox, &QPushButton::clicked, this, &MainWindow::updateLockCheckbox);
 
     m_setBpmLine = new QLineEdit(QString::number(m_tempo, 'f', 1));
     m_setBpmLine->setMaxLength(5);
+    m_setBpmLine->setMaximumWidth(50);
     m_setBpmLinePalette = QPalette();
     m_setBpmLinePalette.setColor(QPalette::Text, Qt::gray);
     m_setBpmLine->setPalette(m_setBpmLinePalette);
     connect(m_setBpmLine, &QLineEdit::returnPressed, this, &MainWindow::manualUpdateTempo);
 
-    m_limitCheckBox = new QCheckBox(tr("Limit tempo between:"));
-    m_limitCheckBox->setChecked(m_limitTempo);
-    connect(m_limitCheckBox, &QCheckBox::clicked, this, &MainWindow::updateTempo);
+    QLabel *bpmLabel = new QLabel(tr("bpm"));
+    QHBoxLayout *tempoLine = new QHBoxLayout;
+    tempoLine->addWidget(m_setBpmLine);
+    tempoLine->addWidget(bpmLabel);
 
-    m_lowerBpmLine = new QLineEdit();
-    m_upperBpmLine = new QLineEdit();
-    updateLowerTempoLimit(m_tempoLowerLimit);
-    updateUpperTempoLimit(m_tempoUpperLimit);
-    connect(m_lowerBpmLine, &QLineEdit::editingFinished, this, &MainWindow::readLowerLimit);
-    connect(m_upperBpmLine, &QLineEdit::editingFinished, this, &MainWindow::readUpperLimit);
-
-    QPushButton *saveButton = new QPushButton(tr("Save settings"));
-    connect(saveButton, &QPushButton::clicked, this, &MainWindow::saveSettings);
-
-    QHBoxLayout *tempoControlLayout = new QHBoxLayout;
-    tempoControlLayout->addWidget(m_lockCheckBox, 3);
-    tempoControlLayout->addWidget(m_setBpmLine, 1);
-    tempoControlLayout->addWidget(m_limitCheckBox, 3);
-    tempoControlLayout->addWidget(m_lowerBpmLine, 1);
-    tempoControlLayout->addWidget(m_upperBpmLine, 1);
-    tempoControlLayout->addWidget(saveButton, 3);
-
-    QLabel *confidenceLabel = new QLabel(tr("Beat confidence level"));
+    QLabel *confidenceLabel = new QLabel(tr("Detection threshold"));
     m_confidenceSlider = new QSlider();
     m_confidenceSlider->setOrientation(Qt::Horizontal);
     m_confidenceSlider->setMinimum(10);
@@ -55,12 +43,47 @@ MainWindow::MainWindow()
     m_confidenceSlider->setValue(int(10*m_confidenceLevel));
     connect(m_confidenceSlider, &QSlider::valueChanged, this, &MainWindow::setConfidenceLevel);
 
-    QVBoxLayout *confidenceLayout = new QVBoxLayout;
-    confidenceLayout->addWidget(confidenceLabel);
-    confidenceLayout->addWidget(m_confidenceSlider);
+    QVBoxLayout *tempoLayout = new QVBoxLayout;
+    tempoLayout->addLayout(tempoLine);
+    tempoLayout->addWidget(m_lockCheckBox);
+    tempoLayout->addStretch(1);
+    tempoLayout->addWidget(confidenceLabel);
+    tempoLayout->addWidget(m_confidenceSlider);
+    m_tempoGroup->setLayout(tempoLayout);
+
+
+    // Layout for adjusting tempo
+    m_limitGroup = new QGroupBox(tr("Adjust Tempo"));
+
+    m_limitCheckBox = new QCheckBox(tr("Enable limits"));
+    m_limitCheckBox->setChecked(m_limitTempo);
+    connect(m_limitCheckBox, &QCheckBox::clicked, this, &MainWindow::updateTempo);
+
+    QLabel *minLabel = new QLabel(tr("Min"));
+    QLabel *maxLabel = new QLabel(tr("Max"));
+    m_lowerBpmLine = new QLineEdit();
+    m_upperBpmLine = new QLineEdit();
+    m_lowerBpmLine->setMaxLength(5);
+    m_upperBpmLine->setMaxLength(5);
+    m_lowerBpmLine->setMaximumWidth(50);
+    m_upperBpmLine->setMaximumWidth(50);
+    QLabel *bpm1 = new QLabel(tr("bpm"));
+    QLabel *bpm2 = new QLabel(tr("bpm"));
+    updateLowerTempoLimit(m_tempoLowerLimit);
+    updateUpperTempoLimit(m_tempoUpperLimit);
+    connect(m_lowerBpmLine, &QLineEdit::editingFinished, this, &MainWindow::readLowerLimit);
+    connect(m_upperBpmLine, &QLineEdit::editingFinished, this, &MainWindow::readUpperLimit);
+    QHBoxLayout *minLine = new QHBoxLayout;
+    minLine->addWidget(minLabel);
+    minLine->addWidget(m_lowerBpmLine);
+    minLine->addWidget(bpm1);
+    QHBoxLayout *maxLine = new QHBoxLayout;
+    maxLine->addWidget(maxLabel);
+    maxLine->addWidget(m_upperBpmLine);
+    maxLine->addWidget(bpm2);
 
     m_tempoMultiplierLabel = new QLabel;
-    m_tempoMultiplierSlider = new QSlider();
+    m_tempoMultiplierSlider = new QSlider;
     m_tempoMultiplierSlider->setOrientation(Qt::Horizontal);
     m_tempoMultiplierSlider->setMinimum(-2);
     m_tempoMultiplierSlider->setMaximum(2);
@@ -69,22 +92,43 @@ MainWindow::MainWindow()
     m_tempoMultiplierLabel->setText("Tempo multiplier " + QString::number(m_tempoMultiplier, 'f', 2));
     connect(m_tempoMultiplierSlider, &QSlider::valueChanged, this, &MainWindow::setTempoMultiplier);
 
-    QVBoxLayout *tempoMultiplierLayout = new QVBoxLayout;
-    tempoMultiplierLayout->addWidget(m_tempoMultiplierLabel);
-    tempoMultiplierLayout->addWidget(m_tempoMultiplierSlider);
+    QGridLayout *limitLayout = new QGridLayout;
+    limitLayout->addWidget(m_limitCheckBox, 0, 0, 1, 3);
+    limitLayout->addWidget(minLabel, 1, 0, 1, 1);
+    limitLayout->addWidget(m_lowerBpmLine, 1, 1, 1, 1);
+    limitLayout->addWidget(bpm1, 1, 2, 1, 1);
+    limitLayout->addWidget(maxLabel, 2, 0, 1, 1);
+    limitLayout->addWidget(m_upperBpmLine, 2, 1, 1, 1);
+    limitLayout->addWidget(bpm2, 2, 2, 1, 1);
+    limitLayout->addWidget(m_tempoMultiplierLabel, 3, 0, 1, 3);
+    limitLayout->addWidget(m_tempoMultiplierSlider, 4, 0, 1, 3);
+    m_limitGroup->setLayout(limitLayout);
+
+    QHBoxLayout *tempoControls = new QHBoxLayout;
+    tempoControls->addWidget(m_tempoGroup);
+    tempoControls->addWidget(m_limitGroup);
+
+
+    // Layout for audio device settings
+    m_audioGroup = new QGroupBox(tr("Audio Device"));
+    m_audioSelect = new QComboBox;
+    QHBoxLayout *audioSelectLayout = new QHBoxLayout;
+    audioSelectLayout->addWidget(m_audioSelect);
+    m_audioGroup->setLayout(audioSelectLayout);
+
+
+    // Layout for fullscreen settings
+    m_videoGroup = new QGroupBox(tr("Fullscreen Options"));
 
     m_startFullScreenCheckBox = new QCheckBox(tr("Start in fullscreen mode"));
     m_startFullScreenCheckBox->setChecked(m_startAsFullScreen);
     connect(m_startFullScreenCheckBox, &QCheckBox::clicked, this, &MainWindow::setStartFullScreen);
 
-
-    QHBoxLayout *slidersLayout = new QHBoxLayout;
-    slidersLayout->addLayout(confidenceLayout);
-    slidersLayout->addLayout(tempoMultiplierLayout);
-    slidersLayout->addWidget(m_startFullScreenCheckBox);
+    m_tempoControlsCheckBox = new QCheckBox(tr("Show tempo controls"));
+    m_tempoControlsCheckBox->setChecked(m_showTempoControls);
+    connect(m_tempoControlsCheckBox, &QCheckBox::clicked, this, &MainWindow::setShowTempoControls);
 
     QLabel *screenLabel = new QLabel(tr("Display:"));
-
     m_screenSelect = new QComboBox;
     m_screens = qApp->screens();
     for (auto it = m_screens.begin(); it != m_screens.end(); it++) {
@@ -92,22 +136,21 @@ MainWindow::MainWindow()
     }
     m_screenSelect->setCurrentIndex(m_screenNumber);
     connect(m_screenSelect, QOverload<int>::of(&QComboBox::currentIndexChanged), this, &MainWindow::setScreenNumber);
+    QHBoxLayout *screenLayout = new QHBoxLayout;
+    screenLayout->addWidget(screenLabel);
+    screenLayout->addWidget(m_screenSelect);
 
-    QLabel *audioLabel = new QLabel(tr("Audio Device:"));
-
-    m_audioSelect = new QComboBox;
-
-    QHBoxLayout *audioSelectLayout = new QHBoxLayout;
-    audioSelectLayout->addWidget(screenLabel);
-    audioSelectLayout->addWidget(m_screenSelect);
-    audioSelectLayout->addWidget(audioLabel);
-    audioSelectLayout->addWidget(m_audioSelect);
+    QVBoxLayout *videoLayout = new QVBoxLayout;
+    videoLayout->addWidget(m_startFullScreenCheckBox);
+    videoLayout->addWidget(m_tempoControlsCheckBox);
+    videoLayout->addLayout(screenLayout);
+    m_videoGroup->setLayout(videoLayout);
 
     m_layout = new QVBoxLayout;
-    m_layout->addWidget(m_graphicsWidget, 5);
-    m_layout->addLayout(tempoControlLayout, 1);
-    m_layout->addLayout(slidersLayout, 1);
-    m_layout->addLayout(audioSelectLayout, 1);
+    m_layout->addWidget(m_graphicsWidget);
+    m_layout->addLayout(tempoControls);
+    m_layout->addWidget(m_audioGroup);
+    m_layout->addWidget(m_videoGroup);
     setLayout(m_layout);
 
     m_rhythm = new RhythmExtractor();
@@ -126,10 +169,9 @@ MainWindow::MainWindow()
     m_keySpacebar->setKey(Qt::Key_Space);
     connect(m_keySpacebar, &QShortcut::activated, this, &MainWindow::toggleManualTempo);
 
+    this->show();
     if (m_startAsFullScreen) {
         setVideoFullScreen();
-    } else {
-        this->show();
     }
 }
 
@@ -361,6 +403,13 @@ void MainWindow::readSettings()
     }
 
 
+    // Show controls when in fullscreen
+    m_showTempoControls = false;
+    if (!values.value("show_tempo_controls").isUndefined()) {
+        m_showTempoControls = values["show_tempo_controls"].toBool();
+    }
+
+
     // Confifence level
     double confidence = 3.0;
     if (!values.value("confidence_threshold").isUndefined()) {
@@ -403,7 +452,7 @@ void MainWindow::saveSettings()
     QFile saveFile("settings.JSON");
 
     if (!saveFile.open(QIODevice::WriteOnly)) {
-        qWarning("Coudn't open settings file for saving. Is the folder write-protected?");
+        qWarning("Coudn't save settings. Is the folder write-protected?");
         return;
     }
 
@@ -414,6 +463,7 @@ void MainWindow::saveSettings()
     settingsData["tempo_upper_limit"] = m_tempoUpperLimit;
     settingsData["screen"] = m_screenSelect->currentIndex();
     settingsData["start_as_fullscreen"] = m_startAsFullScreen;
+    settingsData["show_tempo_controls"] = m_showTempoControls;
     settingsData["confidence_threshold"] = m_confidenceLevel;
     settingsData["tempo_multiplier"] = m_tempoMultiplier;
 
@@ -424,6 +474,7 @@ void MainWindow::saveSettings()
     qDebug("  tempo_upper_limit: %f", m_tempoUpperLimit);
     qDebug("  screen: %d", m_screenSelect->currentIndex());
     qDebug("  start_as_fullscreen: %d", m_startAsFullScreen);
+    qDebug("  show_tempo_controls: %d", m_showTempoControls);
     qDebug("  confidence_threshold %f", m_confidenceLevel);
     qDebug("  tempo_multiplier: %f", m_tempoMultiplier);
 
@@ -435,10 +486,15 @@ void MainWindow::setVideoFullScreen()
     if (m_graphicsWidget->windowState() == Qt::WindowFullScreen) {
         m_graphicsWidget->setParent(this, Qt::Widget);
         m_graphicsWidget->setWindowState(Qt::WindowNoState);
-        m_layout->insertWidget(0, m_graphicsWidget, 5);
-        this->show();
+        m_layout->insertWidget(0, m_graphicsWidget);
+        if (!m_showTempoControls) {
+            show();
+        } else {
+            m_layout->addWidget(m_audioGroup);
+            m_layout->addWidget(m_videoGroup);
+        }
     } else {
-        m_graphicsWidget->setParent(nullptr, Qt::Dialog);
+        m_graphicsWidget->setParent(nullptr);
         m_screens = qApp->screens();
         if (m_screenNumber > m_screens.size()-1) {
             m_screenNumber = 0;
@@ -446,7 +502,14 @@ void MainWindow::setVideoFullScreen()
         QRect screen = m_screens[m_screenNumber]->geometry();
         m_graphicsWidget->setGeometry(screen);
         m_graphicsWidget->showFullScreen();
-        this->hide();
+        if (!m_showTempoControls) {
+            hide();
+        } else {
+            m_layout->removeWidget(m_audioGroup);
+            m_layout->removeWidget(m_videoGroup);
+            m_layout->invalidate();
+            QTimer::singleShot(50, this, &MainWindow::fixSize);
+        }
     }
 }
 
@@ -476,4 +539,21 @@ void MainWindow::setStartFullScreen()
 {
     m_startAsFullScreen = m_startFullScreenCheckBox->isChecked();
     qDebug("Setting starting as fullscreen to %d", m_startAsFullScreen);
+}
+
+void MainWindow::setShowTempoControls()
+{
+    m_showTempoControls = m_tempoControlsCheckBox->isChecked();
+    qDebug("Set showing tempo controls to %d", m_showTempoControls);
+}
+
+void MainWindow::fixSize()
+{
+    resize(sizeHint());
+}
+
+void MainWindow::closeEvent(QCloseEvent *e)
+{
+    delete m_graphicsWidget;
+    saveSettings();
 }
