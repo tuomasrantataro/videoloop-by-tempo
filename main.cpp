@@ -11,8 +11,6 @@ int main(int argc, char *argv[])
     app.setWindowIcon(icon);
 
     MainWindow mainWindow;
-    mainWindow.resize(1024, 768);
-    mainWindow.show();
 
     return app.exec();
 }

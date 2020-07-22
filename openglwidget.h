@@ -11,6 +11,7 @@
 #include <QTimer>
 #include <QMouseEvent>
 #include <QKeyEvent>
+#include <QSize>
 #include <chrono>
 #include <vector>
 
@@ -23,6 +24,10 @@ public:
     ~OpenGLWidget();
 
     void setBpm(float tempo);
+
+    QSize minimumSizeHint() const {
+        return QSize(600, 400);
+    }
 
 signals:
     void toggleFullScreen();

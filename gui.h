@@ -50,6 +50,8 @@ private slots:
     void setVideoFullScreen();
     void setScreenNumber(int idx);
 
+    void setStartFullScreen();
+
     void saveSettings();
 
 private:
@@ -65,12 +67,16 @@ private:
     QLineEdit *m_setBpmLine;
     QPalette m_setBpmLinePalette;
     QCheckBox *m_lockCheckBox;
+    bool m_lockTempo;
     QCheckBox *m_limitCheckBox;
+    bool m_limitTempo;
     QLineEdit *m_lowerBpmLine;
     QLineEdit *m_upperBpmLine;
+    QCheckBox *m_startFullScreenCheckBox;
     QComboBox *m_screenSelect;
     QList<QScreen*> m_screens;
     int m_screenNumber;
+    bool m_startAsFullScreen;
     QComboBox *m_audioSelect;
 
     QSlider *m_confidenceSlider;

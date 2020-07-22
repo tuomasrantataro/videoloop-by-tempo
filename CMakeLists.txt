@@ -34,6 +34,7 @@ install(DIRECTORY "${PROJECT_SOURCE_DIR}/frames/" DESTINATION "${CMAKE_CURRENT_S
 install(FILES "${PROJECT_SOURCE_DIR}/LICENSE" DESTINATION "${PROJECT_SOURCE_DIR}/release/")
 install(FILES "${PROJECT_SOURCE_DIR}/README.md" DESTINATION "${PROJECT_SOURCE_DIR}/release/")
 install(FILES "${PROJECT_SOURCE_DIR}/install.sh" DESTINATION "${PROJECT_SOURCE_DIR}/release/")
+install(FILES "${PROJECT_SOURCE_DIR}/icon_256px.png" DESTINATION "${PROJECT_SOURCE_DIR}/release/")
 
 set(CPACK_PACKAGE_VENDOR "Tuomas Rantataro")
 set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "Adjust the speed of your video loop according to tempo of sound output")

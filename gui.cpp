@@ -7,6 +7,8 @@
 
 MainWindow::MainWindow()
 {
+    readSettings();
+
     m_graphicsWidget = new OpenGLWidget();
     connect(m_graphicsWidget, &OpenGLWidget::toggleFullScreen, this, &MainWindow::setVideoFullScreen);
     connect(m_graphicsWidget, &OpenGLWidget::initReady, this, &MainWindow::updateTempo);
@@ -23,12 +25,14 @@ MainWindow::MainWindow()
     connect(m_setBpmLine, &QLineEdit::returnPressed, this, &MainWindow::manualUpdateTempo);
 
     m_limitCheckBox = new QCheckBox(tr("Limit tempo between:"));
+    m_limitCheckBox->setChecked(m_limitTempo);
     connect(m_limitCheckBox, &QCheckBox::clicked, this, &MainWindow::updateTempo);
 
-    m_lowerBpmLine = new QLineEdit(); //QString::number(m_tempoLowerLimit, 'f', 1));
+    m_lowerBpmLine = new QLineEdit();
+    m_upperBpmLine = new QLineEdit();
+    updateLowerTempoLimit(m_tempoLowerLimit);
+    updateUpperTempoLimit(m_tempoUpperLimit);
     connect(m_lowerBpmLine, &QLineEdit::editingFinished, this, &MainWindow::readLowerLimit);
-
-    m_upperBpmLine = new QLineEdit(); //QString::number(m_tempoUpperLimit, 'f', 1));
     connect(m_upperBpmLine, &QLineEdit::editingFinished, this, &MainWindow::readUpperLimit);
 
     QPushButton *saveButton = new QPushButton(tr("Save settings"));
@@ -43,33 +47,41 @@ MainWindow::MainWindow()
     tempoControlLayout->addWidget(saveButton, 3);
 
     QLabel *confidenceLabel = new QLabel(tr("Beat confidence level"));
-
     m_confidenceSlider = new QSlider();
     m_confidenceSlider->setOrientation(Qt::Horizontal);
     m_confidenceSlider->setMinimum(10);
     m_confidenceSlider->setMaximum(50);
     m_confidenceSlider->setTickInterval(1);
+    m_confidenceSlider->setValue(int(10*m_confidenceLevel));
     connect(m_confidenceSlider, &QSlider::valueChanged, this, &MainWindow::setConfidenceLevel);
 
     QVBoxLayout *confidenceLayout = new QVBoxLayout;
     confidenceLayout->addWidget(confidenceLabel);
     confidenceLayout->addWidget(m_confidenceSlider);
 
-    m_tempoMultiplierLabel = new QLabel(tr("Tempo multiplier 1.0"));
+    m_tempoMultiplierLabel = new QLabel;
     m_tempoMultiplierSlider = new QSlider();
     m_tempoMultiplierSlider->setOrientation(Qt::Horizontal);
     m_tempoMultiplierSlider->setMinimum(-2);
     m_tempoMultiplierSlider->setMaximum(2);
     m_tempoMultiplierSlider->setTickInterval(1);
+    m_tempoMultiplierSlider->setValue(log2(m_tempoMultiplier));
+    m_tempoMultiplierLabel->setText("Tempo multiplier " + QString::number(m_tempoMultiplier, 'f', 2));
     connect(m_tempoMultiplierSlider, &QSlider::valueChanged, this, &MainWindow::setTempoMultiplier);
 
     QVBoxLayout *tempoMultiplierLayout = new QVBoxLayout;
     tempoMultiplierLayout->addWidget(m_tempoMultiplierLabel);
     tempoMultiplierLayout->addWidget(m_tempoMultiplierSlider);
 
+    m_startFullScreenCheckBox = new QCheckBox(tr("Start in fullscreen mode"));
+    m_startFullScreenCheckBox->setChecked(m_startAsFullScreen);
+    connect(m_startFullScreenCheckBox, &QCheckBox::clicked, this, &MainWindow::setStartFullScreen);
+
+
     QHBoxLayout *slidersLayout = new QHBoxLayout;
     slidersLayout->addLayout(confidenceLayout);
     slidersLayout->addLayout(tempoMultiplierLayout);
+    slidersLayout->addWidget(m_startFullScreenCheckBox);
 
     QLabel *screenLabel = new QLabel(tr("Display:"));
 
@@ -78,6 +90,7 @@ MainWindow::MainWindow()
     for (auto it = m_screens.begin(); it != m_screens.end(); it++) {
         m_screenSelect->addItem(QString((*it)->name() + ": " + (*it)->manufacturer() + " " + (*it)->model()));
     }
+    m_screenSelect->setCurrentIndex(m_screenNumber);
     connect(m_screenSelect, QOverload<int>::of(&QComboBox::currentIndexChanged), this, &MainWindow::setScreenNumber);
 
     QLabel *audioLabel = new QLabel(tr("Audio Device:"));
@@ -97,8 +110,6 @@ MainWindow::MainWindow()
     m_layout->addLayout(audioSelectLayout, 1);
     setLayout(m_layout);
 
-    readSettings();
-
     m_rhythm = new RhythmExtractor();
     connect(m_rhythm, &RhythmExtractor::tempoReady, this, &MainWindow::autoUpdateTempo);
 
@@ -114,6 +125,12 @@ MainWindow::MainWindow()
     m_keySpacebar = new QShortcut(this);
     m_keySpacebar->setKey(Qt::Key_Space);
     connect(m_keySpacebar, &QShortcut::activated, this, &MainWindow::toggleManualTempo);
+
+    if (m_startAsFullScreen) {
+        setVideoFullScreen();
+    } else {
+        this->show();
+    }
 }
 
 void MainWindow::updateTempo()
@@ -302,7 +319,7 @@ void MainWindow::readSettings()
     if (!values.value("limit_tempo").isUndefined()) {
         limitTempo = values["limit_tempo"].toBool();
     }
-    m_limitCheckBox->setChecked(limitTempo);
+    m_limitTempo = limitTempo;
 
 
     // Tempo lower limit
@@ -320,13 +337,10 @@ void MainWindow::readSettings()
     if (!values.value("tempo_upper_limit").isUndefined()) {
         upperLimit = values["tempo_upper_limit"].toDouble();
     }
-    if (upperLimit < 0) {
-        upperLimit = 1.0;
+    if (upperLimit < 2*lowerLimit) {
+        upperLimit = 2*lowerLimit;
     }
     m_tempoUpperLimit = upperLimit;
-
-    updateLowerTempoLimit(lowerLimit);
-    updateUpperTempoLimit(upperLimit);
 
 
     // Screen for showing the video
@@ -338,7 +352,13 @@ void MainWindow::readSettings()
         screen = 0;
     }
     m_screenNumber = screen;
-    m_screenSelect->setCurrentIndex(screen);
+
+
+    // Start as fullscreen
+    m_startAsFullScreen = false;
+    if (!values.value("start_as_fullscreen").isUndefined()) {
+        m_startAsFullScreen = values["start_as_fullscreen"].toBool();
+    }
 
 
     // Confifence level
@@ -351,7 +371,7 @@ void MainWindow::readSettings()
     } else if (confidence > 5.0) {
         confidence = 5.0;
     }
-    m_confidenceSlider->setValue(int(10*confidence));
+    m_confidenceLevel = confidence;
 
 
     // Tempo multiplier
@@ -365,9 +385,7 @@ void MainWindow::readSettings()
     } else if (tempoMultiplier > 4.0) {
         tempoMultiplier = 4.0;
     }
-    int exp = log2(tempoMultiplier);
     m_tempoMultiplier = tempoMultiplier;
-    m_tempoMultiplierSlider->setValue(exp);
 
 
     qDebug("settings.JSON read. Using settings:");
@@ -378,7 +396,6 @@ void MainWindow::readSettings()
     qDebug("  screen: %d", screen);
     qDebug("  confidence_threshold: %f", confidence);
     qDebug("  tempo_multiplier: %f", tempoMultiplier);
-
 }
 
 void MainWindow::saveSettings()
@@ -396,6 +413,7 @@ void MainWindow::saveSettings()
     settingsData["tempo_lower_limit"] = m_tempoLowerLimit;
     settingsData["tempo_upper_limit"] = m_tempoUpperLimit;
     settingsData["screen"] = m_screenSelect->currentIndex();
+    settingsData["start_as_fullscreen"] = m_startAsFullScreen;
     settingsData["confidence_threshold"] = m_confidenceLevel;
     settingsData["tempo_multiplier"] = m_tempoMultiplier;
 
@@ -405,6 +423,7 @@ void MainWindow::saveSettings()
     qDebug("  tempo_lower_limit: %f", m_tempoLowerLimit);
     qDebug("  tempo_upper_limit: %f", m_tempoUpperLimit);
     qDebug("  screen: %d", m_screenSelect->currentIndex());
+    qDebug("  start_as_fullscreen: %d", m_startAsFullScreen);
     qDebug("  confidence_threshold %f", m_confidenceLevel);
     qDebug("  tempo_multiplier: %f", m_tempoMultiplier);
 
@@ -451,4 +470,10 @@ void MainWindow::setTempoMultiplier(int value)
     qDebug("Tempo multiplier set to %s", qPrintable(multiplierStr));
     
     updateTempo();
+}
+
+void MainWindow::setStartFullScreen()
+{
+    m_startAsFullScreen = m_startFullScreenCheckBox->isChecked();
+    qDebug("Setting starting as fullscreen to %d", m_startAsFullScreen);
 }
