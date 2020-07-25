@@ -131,18 +131,19 @@ void OpenGLWidget::makeObject()
     for (int i = 0; i < imageCount; i++) {
         m_frameIndexes.push_back(i);
     }
-
+    
     if (imageCount > 1) {
         for (int i = imageCount-2; i > 0; i--) {
             m_frameIndexes.push_back(i);
         }
     }
-
-    m_frameCount = m_frameIndexes.size();
     
     for (int i = 0; i < imageCount; i++) {
         m_textures.append(new QOpenGLTexture(images[i]));
     }
+
+    //m_frameCount = m_frameIndexes.size();
+    m_frameCount = m_textures.size();
 
     static const int coords[4][2] = {
         { +1, -1 },
@@ -184,4 +185,13 @@ void OpenGLWidget::calculateFrameIndex()
     auto now = std::chrono::high_resolution_clock::now();
     std::chrono::duration<double> elapsed = now - m_startTime;
     m_currentFrameIndex = int(elapsed.count()/m_timePerFrame_s) % m_frameCount;
+}
+
+void OpenGLWidget::setAddReversedFrames(bool add)
+{
+    if (add) {
+        m_frameCount = m_frameIndexes.size();
+    } else {
+        m_frameCount = m_textures.size();
+    }
 }

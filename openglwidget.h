@@ -29,6 +29,9 @@ public:
         return QSize(400, 300);
     }
 
+public slots:
+    void setAddReversedFrames(bool add);
+
 signals:
     void toggleFullScreen();
     void initReady();

@@ -9,9 +9,10 @@ MainWindow::MainWindow()
 {
     readSettings();
 
-    m_graphicsWidget = new OpenGLWidget();
+    m_graphicsWidget = new OpenGLWidget;
     connect(m_graphicsWidget, &OpenGLWidget::toggleFullScreen, this, &MainWindow::setVideoFullScreen);
     connect(m_graphicsWidget, &OpenGLWidget::initReady, this, &MainWindow::updateTempo);
+    connect(m_graphicsWidget, &OpenGLWidget::initReady, this, &MainWindow::setAddReversedFrames);
     connect(m_graphicsWidget, &OpenGLWidget::spacePressed, this, &MainWindow::toggleManualTempo);
 
 
@@ -118,13 +119,13 @@ MainWindow::MainWindow()
 
 
     // Layout for fullscreen settings
-    m_videoGroup = new QGroupBox(tr("Fullscreen Options"));
+    m_videoGroup = new QGroupBox(tr("Video Options"));
 
     m_startFullScreenCheckBox = new QCheckBox(tr("Start in fullscreen mode"));
     m_startFullScreenCheckBox->setChecked(m_startAsFullScreen);
     connect(m_startFullScreenCheckBox, &QCheckBox::clicked, this, &MainWindow::setStartFullScreen);
 
-    m_tempoControlsCheckBox = new QCheckBox(tr("Show tempo controls"));
+    m_tempoControlsCheckBox = new QCheckBox(tr("Show tempo controls in fullscreen"));
     m_tempoControlsCheckBox->setChecked(m_showTempoControls);
     connect(m_tempoControlsCheckBox, &QCheckBox::clicked, this, &MainWindow::setShowTempoControls);
 
@@ -140,17 +141,23 @@ MainWindow::MainWindow()
     screenLayout->addWidget(screenLabel);
     screenLayout->addWidget(m_screenSelect);
 
+    m_reverseFramesCheckBox = new QCheckBox(tr("Add reversed frames to loop"));
+    m_reverseFramesCheckBox->setChecked(m_addReversedFrames);
+    //m_graphicsWidget->setAddReversedFrames(m_addReversedFrames);
+    connect(m_reverseFramesCheckBox, &QCheckBox::clicked, this, &MainWindow::setAddReversedFrames);
+
     QVBoxLayout *videoLayout = new QVBoxLayout;
     videoLayout->addWidget(m_startFullScreenCheckBox);
     videoLayout->addWidget(m_tempoControlsCheckBox);
+    videoLayout->addWidget(m_reverseFramesCheckBox);
     videoLayout->addLayout(screenLayout);
     m_videoGroup->setLayout(videoLayout);
 
     m_layout = new QVBoxLayout;
-    m_layout->addWidget(m_graphicsWidget);
-    m_layout->addLayout(tempoControls);
-    m_layout->addWidget(m_audioGroup);
-    m_layout->addWidget(m_videoGroup);
+    m_layout->addWidget(m_graphicsWidget, 5);
+    m_layout->addLayout(tempoControls, 1);
+    m_layout->addWidget(m_audioGroup, 1);
+    m_layout->addWidget(m_videoGroup, 1);
     setLayout(m_layout);
 
     m_rhythm = new RhythmExtractor();
@@ -269,7 +276,6 @@ void MainWindow::updateLockCheckbox()
 
 void MainWindow::toggleManualTempo()
 {
-    qDebug("Toggling manual tempo checkbox to %d", !m_lockCheckBox->isChecked());
     m_lockCheckBox->setChecked(!m_lockCheckBox->isChecked());
     updateLockCheckbox();
 }
@@ -410,6 +416,13 @@ void MainWindow::readSettings()
     }
 
 
+    // Toggle adding frames reversed to the video loop
+    m_addReversedFrames = false;
+    if (!values.value("add_reversed_frames").isUndefined()) {
+        m_addReversedFrames = values["add_reversed_frames"].toBool();
+    }
+
+
     // Confifence level
     double confidence = 3.0;
     if (!values.value("confidence_threshold").isUndefined()) {
@@ -464,6 +477,7 @@ void MainWindow::saveSettings()
     settingsData["screen"] = m_screenSelect->currentIndex();
     settingsData["start_as_fullscreen"] = m_startAsFullScreen;
     settingsData["show_tempo_controls"] = m_showTempoControls;
+    settingsData["add_reversed_frames"] = m_addReversedFrames;
     settingsData["confidence_threshold"] = m_confidenceLevel;
     settingsData["tempo_multiplier"] = m_tempoMultiplier;
 
@@ -486,12 +500,12 @@ void MainWindow::setVideoFullScreen()
     if (m_graphicsWidget->windowState() == Qt::WindowFullScreen) {
         m_graphicsWidget->setParent(this, Qt::Widget);
         m_graphicsWidget->setWindowState(Qt::WindowNoState);
-        m_layout->insertWidget(0, m_graphicsWidget);
+        m_layout->insertWidget(0, m_graphicsWidget, 5);
         if (!m_showTempoControls) {
             show();
         } else {
-            m_layout->addWidget(m_audioGroup);
-            m_layout->addWidget(m_videoGroup);
+            m_layout->addWidget(m_audioGroup, 1);
+            m_layout->addWidget(m_videoGroup, 1);
         }
     } else {
         m_graphicsWidget->setParent(nullptr);
@@ -516,13 +530,11 @@ void MainWindow::setVideoFullScreen()
 void MainWindow::setScreenNumber(int idx)
 {
     m_screenNumber = idx;
-    qDebug("Set fullscreen video to appear on display number %d", m_screenNumber);
 }
 
 void MainWindow::setConfidenceLevel(int value)
 {
     m_confidenceLevel = float(value)/10.0;
-    qDebug("Confidence level set to %f (valid range 0..5.32)", m_confidenceLevel);
 }
 
 void MainWindow::setTempoMultiplier(int value)
@@ -530,7 +542,6 @@ void MainWindow::setTempoMultiplier(int value)
     m_tempoMultiplier = pow(2.0, float(value));
     QString multiplierStr = QString::number(m_tempoMultiplier, 'f', 2);
     m_tempoMultiplierLabel->setText("Tempo multiplier " + multiplierStr);
-    qDebug("Tempo multiplier set to %s", qPrintable(multiplierStr));
     
     updateTempo();
 }
@@ -538,13 +549,17 @@ void MainWindow::setTempoMultiplier(int value)
 void MainWindow::setStartFullScreen()
 {
     m_startAsFullScreen = m_startFullScreenCheckBox->isChecked();
-    qDebug("Setting starting as fullscreen to %d", m_startAsFullScreen);
 }
 
 void MainWindow::setShowTempoControls()
 {
     m_showTempoControls = m_tempoControlsCheckBox->isChecked();
-    qDebug("Set showing tempo controls to %d", m_showTempoControls);
+}
+
+void MainWindow::setAddReversedFrames()
+{
+    m_addReversedFrames = m_reverseFramesCheckBox->isChecked();
+    m_graphicsWidget->setAddReversedFrames(m_addReversedFrames);
 }
 
 void MainWindow::fixSize()
@@ -554,6 +569,7 @@ void MainWindow::fixSize()
 
 void MainWindow::closeEvent(QCloseEvent *e)
 {
+    delete m_frameCreator;
     delete m_graphicsWidget;
     saveSettings();
 }

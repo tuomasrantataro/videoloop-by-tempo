@@ -4,6 +4,7 @@
 #include "audiodevice.h"
 #include "rhythmextractor.h"
 #include "openglwidget.h"
+#include "framecreator.h"
 
 #include <QWidget>
 #include <QLineEdit>
@@ -59,6 +60,8 @@ private slots:
     void setStartFullScreen();
     void setShowTempoControls();
 
+    void setAddReversedFrames();
+
     void saveSettings();
 
     void fixSize();
@@ -94,6 +97,9 @@ private:
     QCheckBox *m_tempoControlsCheckBox;
     bool m_showTempoControls;
 
+    QCheckBox *m_reverseFramesCheckBox;
+    bool m_addReversedFrames;
+
     QComboBox *m_audioSelect;
 
     QSlider *m_confidenceSlider;
@@ -117,6 +123,9 @@ private:
     RhythmExtractor *m_rhythm;
 
     QShortcut *m_keySpacebar;
+
+    FrameCreator *m_frameCreator = nullptr;
+    
 };
 
 #endif
