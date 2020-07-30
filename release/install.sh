@@ -1,3 +1,7 @@
-#!/usr/bin/sh
+#!/bin/sh
 
-cp ./lib/libessentia.a /usr/local/lib
+packages="libqt5widgets5 libqt5multimedia5 libqt5multimedia5-plugins"
+
+apt install $packages
+
+cp ./lib/libessentia.so /usr/lib
