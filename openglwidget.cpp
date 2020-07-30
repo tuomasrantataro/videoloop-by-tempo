@@ -1,4 +1,10 @@
 #include "openglwidget.h"
+#include <QDirIterator>
+
+OpenGLWidget::OpenGLWidget(QString frameFolder) : m_frameFolder(frameFolder)
+{
+
+}
 
 OpenGLWidget::~OpenGLWidget()
 {
@@ -116,14 +122,25 @@ void OpenGLWidget::makeObject()
 
     // Find frames for animation
     QDir directory("frames");
-    QStringList frames = directory.entryList(QStringList() << "*.jpg" << "*.JPG", QDir::Files);
+
+    m_frameFolders = directory.entryList(QDir::NoDotAndDotDot | QDir::Dirs);
+
+    QString path;
+    if (m_frameFolders.contains(m_frameFolder)) {
+        path = "frames/" + m_frameFolder + "/";
+    } else {
+        path = "frames/" + m_frameFolders[0] + "/";
+    }
+    QDir frameDir(path);
+
+    QStringList frames = frameDir.entryList(QStringList() << "*.jpg" << "*.JPG" << "*.png" << "*.PNG", QDir::Files);
 
     QList<QImage> images;
     images.reserve(frames.size());
 
     foreach(QString filename, frames) {
-        QString path = "frames/" + filename;
-        images.push_back(QImage(path).convertToFormat(QImage::Format_RGBA8888_Premultiplied));
+        QString filePath = path + filename;
+        images.push_back(QImage(filePath).convertToFormat(QImage::Format_RGBA8888_Premultiplied));
     }
 
     int imageCount = images.size();
@@ -189,9 +206,56 @@ void OpenGLWidget::calculateFrameIndex()
 
 void OpenGLWidget::setAddReversedFrames(bool add)
 {
+    m_addReversedFrames = add;
     if (add) {
         m_frameCount = m_frameIndexes.size();
     } else {
         m_frameCount = m_textures.size();
+    }
+}
+
+void OpenGLWidget::setFrameFolder(QString folderName)
+{
+    QList<QOpenGLTexture*> textures;
+    std::vector<int> frameIndexes;
+
+    QString path = "frames/" + folderName + "/";
+    QStringList frames = QDir(path).entryList(QStringList() << "*.jpg" << "*.JPG" << "*.png" << "*.PNG", QDir::Files);
+
+    QList<QImage> images;
+    images.reserve(frames.size());
+
+    foreach(QString filename, frames) {
+        QString filePath = path + filename;
+        images.push_back(QImage(filePath).convertToFormat(QImage::Format_RGBA8888_Premultiplied));
+    }
+
+    int imageCount = images.size();
+    float frameAspectRatio = float(images[0].width())/float(images[0].height());
+    for (int i = 0; i < imageCount; i++) {
+        frameIndexes.push_back(i);
+    }
+    
+    if (imageCount > 1) {
+        for (int i = imageCount-2; i > 0; i--) {
+            frameIndexes.push_back(i);
+        }
+    }
+    
+    for (int i = 0; i < imageCount; i++) {
+        textures.append(new QOpenGLTexture(images[i]));
+    }
+
+    QList<QOpenGLTexture*> old = m_textures;
+
+    m_timer->stop();
+    m_textures = textures;
+    m_frameAspectRatio = frameAspectRatio;
+    m_frameIndexes = frameIndexes;
+    setAddReversedFrames(m_addReversedFrames);
+    m_timer->start(10);
+
+    for (auto it = old.begin(); it != old.end(); it++) {
+        delete *it;
     }
 }

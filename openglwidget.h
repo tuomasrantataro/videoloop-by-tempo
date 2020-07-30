@@ -21,6 +21,7 @@ class OpenGLWidget : public QOpenGLWidget, protected QOpenGLFunctions
 
 public:
     using QOpenGLWidget::QOpenGLWidget;
+    OpenGLWidget(QString frameFolder);
     ~OpenGLWidget();
 
     void setBpm(float tempo);
@@ -29,8 +30,13 @@ public:
         return QSize(400, 300);
     }
 
+    QStringList getFrameFolders() {
+        return m_frameFolders;
+    }
+
 public slots:
     void setAddReversedFrames(bool add);
+    void setFrameFolder(QString folderName);
 
 signals:
     void toggleFullScreen();
@@ -47,6 +53,9 @@ protected:
 private:
     void makeObject();
 
+    QStringList m_frameFolders;
+    QString m_frameFolder;
+
     QList<QOpenGLTexture*> m_textures;
     QOpenGLShaderProgram *m_program = nullptr;
     QOpenGLBuffer *m_vbo;
@@ -61,6 +70,9 @@ private:
     float m_viewPortAspectRatio = 1.0;
     int m_frameCount;
     int m_currentFrameIndex = 0;
+
+    bool m_addReversedFrames = false;
+
     void nextFrame();
     void calculateFrameIndex();
 };

@@ -4,23 +4,15 @@
 #include "audiodevice.h"
 #include "rhythmextractor.h"
 #include "openglwidget.h"
-#include "framecreator.h"
 
 #include <QWidget>
 #include <QLineEdit>
 #include <QCheckBox>
-#include <QPalette>
 #include <QString>
 #include <QLabel>
 #include <QComboBox>
 #include <QSlider>
-#include <QJsonObject>
-#include <QJsonDocument>
-#include <QJsonValue>
-#include <QFile>
 #include <QVBoxLayout>
-#include <QHBoxLayout>
-#include <QGridLayout>
 #include <QGroupBox>
 #include <QShortcut>
 #include <QCloseEvent>
@@ -61,6 +53,7 @@ private slots:
     void setShowTempoControls();
 
     void setAddReversedFrames();
+    void setVideoLoop(QString loopName);
 
     void saveSettings();
 
@@ -100,6 +93,9 @@ private:
     QCheckBox *m_reverseFramesCheckBox;
     bool m_addReversedFrames;
 
+    QComboBox *m_loopSelect;
+    QString m_loopName;
+
     QComboBox *m_audioSelect;
 
     QSlider *m_confidenceSlider;
@@ -123,9 +119,6 @@ private:
     RhythmExtractor *m_rhythm;
 
     QShortcut *m_keySpacebar;
-
-    FrameCreator *m_frameCreator = nullptr;
-    
 };
 
 #endif
