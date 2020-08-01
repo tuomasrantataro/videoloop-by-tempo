@@ -19,7 +19,8 @@ find_package(Qt5 COMPONENTS Widgets Multimedia REQUIRED)
 add_library(essentia STATIC IMPORTED)
 set_target_properties(essentia PROPERTIES
     IMPORTED_LOCATION "${CMAKE_CURRENT_SOURCE_DIR}/external/essentia/build/src/libessentia.a")
-target_link_directories(essentia INTERFACE "${CMAKE_CURRENT_SOURCE_DIR}/external/essentia/packaging/debian_3rdparty/lib")
+target_link_directories(essentia 
+    INTERFACE   "${CMAKE_CURRENT_SOURCE_DIR}/external/essentia/packaging/debian_3rdparty/lib")
 target_link_libraries(essentia
     INTERFACE   libfftw3f.a)
 
@@ -32,8 +33,10 @@ target_sources(videoloop-by-tempo
                 src/gui.cpp
                 src/main.cpp
 )
-target_compile_options(videoloop-by-tempo PRIVATE -fPIC -Wall -pedantic)
-target_include_directories(videoloop-by-tempo PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/external/essentia/packaging/debian_3rdparty/include/eigen3")
+target_compile_options(videoloop-by-tempo PRIVATE -fPIC -Wall)
+target_include_directories(videoloop-by-tempo 
+    PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/external/essentia/packaging/debian_3rdparty/include/eigen3"
+            "${CMAKE_CURRENT_SOURCE_DIR}/external/essentia/src")
 target_link_libraries(videoloop-by-tempo
     PRIVATE     Qt5::Widgets
                 Qt5::Multimedia
