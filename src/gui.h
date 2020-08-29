@@ -16,6 +16,7 @@
 #include <QGroupBox>
 #include <QShortcut>
 #include <QCloseEvent>
+#include <QtDBus>
 #include <vector>
 #include <list>
 
@@ -35,7 +36,8 @@ private slots:
 
     void manualUpdateTempo();
     void toggleManualTempo();
-    void updateLockCheckbox();
+    void updateLockCheckBox();
+    void updateFilterCheckBox();
 
     void autoUpdateTempo(std::pair<float, float> tempoPair);
     void calculateTempo(std::vector<uint8_t> audioData);
@@ -59,11 +61,14 @@ private slots:
 
     void fixSize();
 
+
 private:
     void setTempoLimited();
     void updateLowerTempoLimit(float limit);
     void updateUpperTempoLimit(float limit);
     void readSettings();
+
+    bool detectDoubleTempoJump(float newTempo);
 
     OpenGLWidget *m_graphicsWidget;
 
@@ -78,6 +83,9 @@ private:
     QPalette m_setBpmLinePalette;
     QCheckBox *m_lockCheckBox;
     bool m_lockTempo;
+    QCheckBox *m_filterCheckBox;
+    bool m_filterDouble;
+
     QCheckBox *m_limitCheckBox;
     bool m_limitTempo;
     QLineEdit *m_lowerBpmLine;
@@ -112,6 +120,7 @@ private:
     float m_tempoLimited = m_tempo;
 
     std::list<float> m_bpmBuffer{std::list<float>(5, m_tempo)};
+    std::list<float> m_rejectedBpmBuffer{std::list<float>(10, 1.0)};
 
     QString m_device;
     AudioDevice *m_audio;

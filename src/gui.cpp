@@ -26,7 +26,7 @@ MainWindow::MainWindow()
     m_tempoGroup = new QGroupBox(tr("Tempo"));
 
     m_lockCheckBox = new QCheckBox(tr("Manual tempo"));
-    connect(m_lockCheckBox, &QPushButton::clicked, this, &MainWindow::updateLockCheckbox);
+    connect(m_lockCheckBox, &QPushButton::clicked, this, &MainWindow::updateLockCheckBox);
 
     m_setBpmLine = new QLineEdit(QString::number(m_tempo, 'f', 1));
     m_setBpmLine->setMaxLength(5);
@@ -41,6 +41,10 @@ MainWindow::MainWindow()
     tempoLine->addWidget(m_setBpmLine);
     tempoLine->addWidget(bpmLabel);
 
+    m_filterCheckBox = new QCheckBox(tr("Filter half/double tempo"));
+    m_filterCheckBox->setChecked(m_filterDouble);
+    connect(m_filterCheckBox, &QPushButton::clicked, this, &MainWindow::updateFilterCheckBox);
+
     QLabel *confidenceLabel = new QLabel(tr("Detection threshold"));
     m_confidenceSlider = new QSlider();
     m_confidenceSlider->setOrientation(Qt::Horizontal);
@@ -53,7 +57,8 @@ MainWindow::MainWindow()
     QVBoxLayout *tempoLayout = new QVBoxLayout;
     tempoLayout->addLayout(tempoLine);
     tempoLayout->addWidget(m_lockCheckBox);
-    tempoLayout->addStretch(1);
+    //tempoLayout->addStretch(1);
+    tempoLayout->addWidget(m_filterCheckBox);
     tempoLayout->addWidget(confidenceLabel);
     tempoLayout->addWidget(m_confidenceSlider);
     m_tempoGroup->setLayout(tempoLayout);
@@ -210,6 +215,7 @@ MainWindow::MainWindow()
     if (m_startAsFullScreen) {
         setVideoFullScreen();
     }
+
 }
 
 void MainWindow::updateTempo()
@@ -239,6 +245,33 @@ void MainWindow::setTempoLimited()
     m_tempoLimited = tempo;
 }
 
+bool detectHalf(float oldTempo, float newTempo)
+{
+    float diff = abs(oldTempo - newTempo*2.0);
+    if (diff < 5.5) {
+        return true;
+    }
+    return false;
+}
+
+bool detectDouble(float oldTempo, float newTempo)
+{
+    float diff = abs(oldTempo - newTempo/2.0);
+    qDebug("diff: %.2f", diff);
+    if (diff < 3.5) {
+        return true;
+    }
+    return false;
+}
+
+bool MainWindow::detectDoubleTempoJump(float newTempo)
+{
+    // Use fuzzy compare to detect possible double and half tempos
+    bool halfFound = detectHalf(m_tempo, newTempo);
+    bool doubleFound = detectDouble(m_tempo, newTempo);
+    return halfFound || doubleFound;
+}
+
 void MainWindow::autoUpdateTempo(tempoPair tempoData)
 {
     /*TODO: Add filtering. Essentia sometimes outputs single values which vary significantly from
@@ -247,12 +280,18 @@ void MainWindow::autoUpdateTempo(tempoPair tempoData)
     
     TODO: Remove half or double tempos found*/
 
-    float tempo = tempoData.first;
-    //float tempoLimited = tempo;
     const float confidence = tempoData.second;
 
     if (confidence < m_confidenceLevel) {
         qDebug("Confidence too low: %.2f", confidence);
+        return;
+    }
+
+    float tempo = tempoData.first;
+    // filter to integer, since most music uses metronomes with integer bpm
+    tempo = round(tempo);
+    if (m_filterDouble && detectDoubleTempoJump(tempo)) {
+        qDebug("Double or half tempo detected.");
         return;
     }
 
@@ -290,7 +329,7 @@ void MainWindow::manualUpdateTempo()
     }
 }
 
-void MainWindow::updateLockCheckbox()
+void MainWindow::updateLockCheckBox()
 {
     if (m_lockCheckBox->isChecked()) {
         m_setBpmLinePalette = QPalette();
@@ -305,10 +344,15 @@ void MainWindow::updateLockCheckbox()
     }
 }
 
+void MainWindow::updateFilterCheckBox()
+{
+    m_filterDouble = m_lockCheckBox->isChecked();
+}
+
 void MainWindow::toggleManualTempo()
 {
     m_lockCheckBox->setChecked(!m_lockCheckBox->isChecked());
-    updateLockCheckbox();
+    updateLockCheckBox();
 }
 
 void MainWindow::calculateTempo(std::vector<uint8_t> data)
@@ -398,6 +442,12 @@ void MainWindow::readSettings()
         m_limitTempo = values["limit_tempo"].toBool();
     }
 
+    // Enable double/half tempo filtering
+    m_filterDouble = false;
+    if (!values.value("filter_double").isUndefined()) {
+        m_filterDouble = values["filter_double"].toBool();
+    }
+
 
     // Tempo lower limit
     m_tempoLowerLimit = 60.0;
@@ -484,6 +534,7 @@ void MainWindow::readSettings()
     qDebug("Starting with settings:");
     qDebug("  audo_device: %s", qPrintable(m_device));
     qDebug("  limit_tempo: %d", m_limitTempo);
+    qDebug("  filter_double: %d", m_filterDouble);
     qDebug("  tempo_lower_limit: %f", m_tempoLowerLimit);
     qDebug("  tempo_upper_limit: %f", m_tempoUpperLimit);
     qDebug("  screen: %d", m_screenNumber);
@@ -507,6 +558,7 @@ void MainWindow::saveSettings()
     QJsonObject settingsData;
     settingsData["audio_device"] = m_audio->getCurrentDevice();
     settingsData["limit_tempo"] = m_limitCheckBox->isChecked();
+    settingsData["filter_double"] = m_filterCheckBox->isChecked();
     settingsData["tempo_lower_limit"] = m_tempoLowerLimit;
     settingsData["tempo_upper_limit"] = m_tempoUpperLimit;
     settingsData["screen"] = m_screenSelect->currentIndex();
@@ -520,6 +572,7 @@ void MainWindow::saveSettings()
     qDebug("Saving settings:");
     qDebug("  audio_device: %s", qPrintable(m_audio->getCurrentDevice()));
     qDebug("  limit_tempo: %d", m_limitCheckBox->isChecked());
+    qDebug("  filter_double: %d", m_filterCheckBox->isChecked());
     qDebug("  tempo_lower_limit: %f", m_tempoLowerLimit);
     qDebug("  tempo_upper_limit: %f", m_tempoUpperLimit);
     qDebug("  screen: %d", m_screenSelect->currentIndex());
@@ -614,6 +667,7 @@ void MainWindow::fixSize()
 
 void MainWindow::closeEvent(QCloseEvent *e)
 {
+    //TODO: instead of deleting, try reattaching the m_graphicsWidget so it gets deleted automatically
     delete m_graphicsWidget;
     saveSettings();
 }
