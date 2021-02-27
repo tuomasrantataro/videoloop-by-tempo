@@ -72,6 +72,7 @@ private:
     OpenGLWidget *m_graphicsWidget;
 
     QVBoxLayout *m_layout;
+    QGridLayout *m_videoLayout;
 
     QGroupBox *m_tempoGroup;
     QGroupBox *m_limitGroup;

@@ -216,6 +216,7 @@ void OpenGLWidget::setAddReversedFrames(bool add)
 
 void OpenGLWidget::setFrameFolder(QString folderName)
 {
+    makeCurrent();
     QList<QOpenGLTexture*> textures;
     std::vector<int> frameIndexes;
 

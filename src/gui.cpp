@@ -186,15 +186,16 @@ MainWindow::MainWindow()
     loopLayout->addWidget(loopLabel, 1);
     loopLayout->addWidget(m_loopSelect, 2);
 
-    QGridLayout *videoLayout = new QGridLayout;
-    videoLayout->addWidget(m_startFullScreenCheckBox, 0, 0, 1, 3);
-    videoLayout->addWidget(m_tempoControlsCheckBox, 1, 0, 1, 3);
-    videoLayout->addWidget(m_reverseFramesCheckBox, 2, 0, 1, 3);
-    videoLayout->addWidget(loopLabel, 3, 0);
-    videoLayout->addWidget(m_loopSelect, 3, 1, 1, 2);
-    videoLayout->addWidget(screenLabel, 4, 0);
-    videoLayout->addWidget(m_screenSelect, 4, 1, 1, 2);
-    m_videoGroup->setLayout(videoLayout);
+    //QGridLayout *videoLayout = new QGridLayout;
+    m_videoLayout = new QGridLayout;
+    m_videoLayout->addWidget(m_startFullScreenCheckBox, 0, 0, 1, 3);
+    m_videoLayout->addWidget(m_tempoControlsCheckBox, 1, 0, 1, 3);
+    m_videoLayout->addWidget(m_reverseFramesCheckBox, 2, 0, 1, 3);
+    m_videoLayout->addWidget(loopLabel, 3, 0);
+    m_videoLayout->addWidget(m_loopSelect, 3, 1, 1, 2);
+    m_videoLayout->addWidget(screenLabel, 4, 0);
+    m_videoLayout->addWidget(m_screenSelect, 4, 1, 1, 2);
+    m_videoGroup->setLayout(m_videoLayout);
 
 
     // Top level Layout
@@ -602,13 +603,15 @@ void MainWindow::saveSettings()
 void MainWindow::setVideoFullScreen()
 {
     if (m_graphicsWidget->windowState() == Qt::WindowFullScreen) {
-        m_graphicsWidget->setParent(this, Qt::Widget);
-        m_graphicsWidget->setWindowState(Qt::WindowNoState);
+        m_graphicsWidget->setParent(this);
         m_layout->insertWidget(0, m_graphicsWidget, 5);
         if (!m_showTempoControls) {
             show();
         } else {
             m_layout->addWidget(m_audioGroup, 1);
+            m_layout->removeWidget(m_loopSelect);
+            m_videoLayout->addWidget(m_loopSelect, 3, 1, 1, 2);
+            m_videoGroup->setLayout(m_videoLayout);
             m_layout->addWidget(m_videoGroup, 1);
         }
     } else {
@@ -625,6 +628,7 @@ void MainWindow::setVideoFullScreen()
         } else {
             m_layout->removeWidget(m_audioGroup);
             m_layout->removeWidget(m_videoGroup);
+            m_layout->addWidget(m_loopSelect, 1);
             m_layout->invalidate();
             QTimer::singleShot(50, this, &MainWindow::fixSize);
         }
