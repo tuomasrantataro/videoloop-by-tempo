@@ -610,6 +610,7 @@ void MainWindow::setVideoFullScreen()
         } else {
             m_layout->addWidget(m_audioGroup, 1);
             m_layout->removeWidget(m_loopSelect);
+            m_videoLayout->addWidget(m_reverseFramesCheckBox, 2, 0, 1, 3);
             m_videoLayout->addWidget(m_loopSelect, 3, 1, 1, 2);
             m_videoGroup->setLayout(m_videoLayout);
             m_layout->addWidget(m_videoGroup, 1);
@@ -628,7 +629,8 @@ void MainWindow::setVideoFullScreen()
         } else {
             m_layout->removeWidget(m_audioGroup);
             m_layout->removeWidget(m_videoGroup);
-            m_layout->addWidget(m_loopSelect, 1);
+            m_layout->addWidget(m_reverseFramesCheckBox);
+            m_layout->addWidget(m_loopSelect);
             m_layout->invalidate();
             QTimer::singleShot(50, this, &MainWindow::fixSize);
         }
