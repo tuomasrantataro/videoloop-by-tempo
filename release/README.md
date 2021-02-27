@@ -5,7 +5,6 @@ Display video loop which changes its playback speed according to tempo of comput
 This program has been tested to work on Ubuntu 20.04, but likely works on any modern Linux distribution. The project requires Qt for GUI and audio device handling, the <a href=https://essentia.upf.edu>Essentia library</a> for audio analysis, and a video driver which supports OpenGL for rendering. The OpenGL requirement is to enable more complex ways to display the video in the future.
 
 ## Building
-python-is-python3
 
 ### Essentia
 - Git clone essentia to `external` -folder from https://github.com/MTG/essentia

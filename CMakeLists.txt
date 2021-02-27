@@ -10,6 +10,8 @@ set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
 set(CMAKE_AUTOUIC ON)   
 
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+
 add_compile_definitions(
     $<$<CONFIG:Release>:QT_NO_DEBUG_OUTPUT>)
 
@@ -33,7 +35,7 @@ target_sources(videoloop-by-tempo
                 src/gui.cpp
                 src/main.cpp
 )
-target_compile_options(videoloop-by-tempo PRIVATE -fPIC -Wall)
+target_compile_options(videoloop-by-tempo PRIVATE -Wall)
 target_include_directories(videoloop-by-tempo 
     PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/external/essentia/packaging/debian_3rdparty/include/eigen3"
             "${CMAKE_CURRENT_SOURCE_DIR}/external/essentia/src")

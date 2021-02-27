@@ -16,7 +16,6 @@
 #include <QGroupBox>
 #include <QShortcut>
 #include <QCloseEvent>
-#include <QtDBus>
 #include <vector>
 #include <list>
 
@@ -108,6 +107,8 @@ private:
 
     QSlider *m_confidenceSlider;
     float m_confidenceLevel;
+    QSlider *m_thresholdSlider;
+    float m_thresholdLevel;
 
     QLabel *m_tempoMultiplierLabel;
     float m_tempoMultiplier;

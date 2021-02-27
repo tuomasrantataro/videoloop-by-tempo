@@ -45,14 +45,24 @@ MainWindow::MainWindow()
     m_filterCheckBox->setChecked(m_filterDouble);
     connect(m_filterCheckBox, &QPushButton::clicked, this, &MainWindow::updateFilterCheckBox);
 
-    QLabel *confidenceLabel = new QLabel(tr("Detection threshold"));
+    QLabel *confidenceLabel = new QLabel(tr("BPM confidence"));
     m_confidenceSlider = new QSlider();
     m_confidenceSlider->setOrientation(Qt::Horizontal);
-    m_confidenceSlider->setMinimum(10);
+    m_confidenceSlider->setMinimum(0);
     m_confidenceSlider->setMaximum(50);
     m_confidenceSlider->setTickInterval(1);
     m_confidenceSlider->setValue(int(10*m_confidenceLevel));
-    connect(m_confidenceSlider, &QSlider::valueChanged, this, &MainWindow::setConfidenceLevel);
+    m_confidenceSlider->setStyleSheet("QSlider::handle:horizontal {background-color: rgba(0, 0, 0, 0);}");
+
+    QLabel *thresholdLabel = new QLabel(tr("Set Threshold"));
+    m_thresholdSlider = new QSlider();
+    m_thresholdSlider->setOrientation(Qt::Horizontal);
+    m_thresholdSlider->setMinimum(0);
+    m_thresholdSlider->setMaximum(50);
+    m_thresholdSlider->setTickInterval(1);
+    m_thresholdSlider->setValue(int(10*m_thresholdLevel));
+    //m_thresholdSlider->setStyleSheet("QSlider::handle:horizontal {background-color: rgba(0, 0, 255, 0);}");
+    connect(m_thresholdSlider, &QSlider::valueChanged, this, &MainWindow::setConfidenceLevel);
 
     QVBoxLayout *tempoLayout = new QVBoxLayout;
     tempoLayout->addLayout(tempoLine);
@@ -61,6 +71,8 @@ MainWindow::MainWindow()
     tempoLayout->addWidget(m_filterCheckBox);
     tempoLayout->addWidget(confidenceLabel);
     tempoLayout->addWidget(m_confidenceSlider);
+    tempoLayout->addWidget(thresholdLabel);
+    tempoLayout->addWidget(m_thresholdSlider);
     m_tempoGroup->setLayout(tempoLayout);
 
 
@@ -279,11 +291,12 @@ void MainWindow::autoUpdateTempo(tempoPair tempoData)
     be close to each other.
     
     TODO: Remove half or double tempos found*/
+    
+    m_confidenceLevel = tempoData.second;
+    m_confidenceSlider->setValue(int(10*m_confidenceLevel));
 
-    const float confidence = tempoData.second;
-
-    if (confidence < m_confidenceLevel) {
-        qDebug("Confidence too low: %.2f", confidence);
+    if (m_confidenceLevel < m_thresholdLevel) {
+        qDebug("Confidence too low: %.2f", m_confidenceLevel);
         return;
     }
 
@@ -303,7 +316,7 @@ void MainWindow::autoUpdateTempo(tempoPair tempoData)
         average += *it;
     }
     average = average/m_bpmBuffer.size();
-    qDebug("Newest tempo: %.1f Confidence: %.2f | Average of last 5: %.1f", tempo, confidence, average);
+    qDebug("Newest tempo: %.1f Confidence: %.2f | Average of last 5: %.1f", tempo, m_confidenceLevel, average);
 
     if (m_lockCheckBox->isChecked()) {
         return;
@@ -507,14 +520,14 @@ void MainWindow::readSettings()
 
 
     // Confifence level
-    m_confidenceLevel = 3.0;
+    m_thresholdLevel = 3.0;
     if (!values.value("confidence_threshold").isUndefined()) {
-        m_confidenceLevel = values["confidence_threshold"].toDouble();
+        m_thresholdLevel = values["confidence_threshold"].toDouble();
     }
-    if (m_confidenceLevel < 1.0) {
-        m_confidenceLevel = 1.0;
-    } else if (m_confidenceLevel > 5.0) {
-        m_confidenceLevel = 5.0;
+    if (m_thresholdLevel < 1.0) {
+        m_thresholdLevel = 1.0;
+    } else if (m_thresholdLevel > 5.0) {
+        m_thresholdLevel = 5.0;
     }
 
 
@@ -542,7 +555,7 @@ void MainWindow::readSettings()
     qDebug("  show_tempo_controls: %d", m_showTempoControls);
     qDebug("  add_reversed_frames: %d", m_addReversedFrames);
     qDebug("  video_name: %s", qPrintable(m_loopName));
-    qDebug("  confidence_threshold: %f", m_confidenceLevel);
+    qDebug("  confidence_threshold: %f", m_thresholdLevel);
     qDebug("  tempo_multiplier: %f", m_tempoMultiplier);
 }
 
@@ -566,7 +579,7 @@ void MainWindow::saveSettings()
     settingsData["show_tempo_controls"] = m_showTempoControls;
     settingsData["add_reversed_frames"] = m_addReversedFrames;
     settingsData["video_name"] = m_loopName;
-    settingsData["confidence_threshold"] = m_confidenceLevel;
+    settingsData["confidence_threshold"] = m_thresholdLevel;
     settingsData["tempo_multiplier"] = m_tempoMultiplier;
 
     qDebug("Saving settings:");
@@ -580,7 +593,7 @@ void MainWindow::saveSettings()
     qDebug("  show_tempo_controls: %d", m_showTempoControls);
     qDebug("  add_reversed_frames: %d", m_addReversedFrames);
     qDebug("  video_name: %s", qPrintable(m_loopName));
-    qDebug("  confidence_threshold %f", m_confidenceLevel);
+    qDebug("  confidence_threshold %f", m_thresholdLevel);
     qDebug("  tempo_multiplier: %f", m_tempoMultiplier);
 
     saveFile.write(QJsonDocument(settingsData).toJson());
@@ -625,7 +638,7 @@ void MainWindow::setScreenNumber(int idx)
 
 void MainWindow::setConfidenceLevel(int value)
 {
-    m_confidenceLevel = float(value)/10.0;
+    m_thresholdLevel = float(value)/10.0;
 }
 
 void MainWindow::setTempoMultiplier(int value)
