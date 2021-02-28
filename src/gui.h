@@ -67,6 +67,9 @@ private:
     void updateUpperTempoLimit(float limit);
     void readSettings();
 
+    void readLoopSettings(QString loopName);
+    void writeLoopSettings(QString loopName);
+
     bool detectDoubleTempoJump(float newTempo);
 
     OpenGLWidget *m_graphicsWidget;
@@ -100,6 +103,7 @@ private:
 
     QCheckBox *m_reverseFramesCheckBox;
     bool m_addReversedFrames;
+    bool m_loopAddReversedFrames;
 
     QComboBox *m_loopSelect;
     QString m_loopName;
@@ -113,6 +117,7 @@ private:
 
     QLabel *m_tempoMultiplierLabel;
     float m_tempoMultiplier;
+    float m_loopTempoMultiplier;
     QSlider *m_tempoMultiplierSlider;
 
     float m_tempoLowerLimit;

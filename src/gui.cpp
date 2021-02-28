@@ -61,7 +61,6 @@ MainWindow::MainWindow()
     m_thresholdSlider->setMaximum(50);
     m_thresholdSlider->setTickInterval(1);
     m_thresholdSlider->setValue(int(10*m_thresholdLevel));
-    //m_thresholdSlider->setStyleSheet("QSlider::handle:horizontal {background-color: rgba(0, 0, 255, 0);}");
     connect(m_thresholdSlider, &QSlider::valueChanged, this, &MainWindow::setConfidenceLevel);
 
     QVBoxLayout *tempoLayout = new QVBoxLayout;
@@ -124,8 +123,8 @@ MainWindow::MainWindow()
     limitLayout->addWidget(maxLabel, 2, 0, 1, 1);
     limitLayout->addWidget(m_upperBpmLine, 2, 1, 1, 1);
     limitLayout->addWidget(bpm2, 2, 2, 1, 1);
-    limitLayout->addWidget(m_tempoMultiplierLabel, 3, 0, 1, 3);
-    limitLayout->addWidget(m_tempoMultiplierSlider, 4, 0, 1, 3);
+    limitLayout->addWidget(m_tempoMultiplierLabel, 4, 0, 1, 3);
+    limitLayout->addWidget(m_tempoMultiplierSlider, 5, 0, 1, 3);
     m_limitGroup->setLayout(limitLayout);
 
     QHBoxLayout *tempoControls = new QHBoxLayout;
@@ -297,7 +296,7 @@ void MainWindow::autoUpdateTempo(tempoPair tempoData)
     m_confidenceSlider->setValue(int(10*m_confidenceLevel));
 
     if (m_confidenceLevel < m_thresholdLevel) {
-        qDebug("Confidence too low: %.2f", m_confidenceLevel);
+        qDebug("Confidence too low: %.2f, threshold %.2f", m_confidenceLevel, m_thresholdLevel);
         return;
     }
 
@@ -600,6 +599,70 @@ void MainWindow::saveSettings()
     saveFile.write(QJsonDocument(settingsData).toJson());
 }
 
+void MainWindow::readLoopSettings(QString loopName)
+{
+    QJsonObject values;
+    QJsonDocument loadDoc;
+
+    QString settingsFileName = "frames/" + loopName + "/" + "settings.JSON";
+    //QFile loadFile(QStringLiteral(settingsFileName));
+    QFile loadFile(settingsFileName);
+
+    if (!loadFile.open(QIODevice::ReadOnly)) {
+        qWarning("Couldn't open loop settings.JSON. Using default settings.");
+    } else {
+        QString settingsData = loadFile.readAll();
+        loadDoc = QJsonDocument::fromJson(settingsData.toUtf8());
+    }
+
+    if (loadFile.exists() && !loadDoc.isObject()) {
+        qWarning("Malformed loop settings.JSON file. Using default settings.");
+    } else {
+        values = loadDoc.object();
+    }
+
+    // Toggle adding frames reversed to the video loop
+    if (!values.value("add_reversed_frames").isUndefined()) {
+        m_addReversedFrames = values["add_reversed_frames"].toBool();
+    }
+    m_reverseFramesCheckBox->setChecked(m_addReversedFrames);
+    setAddReversedFrames();
+
+    // Tempo multiplier
+    if (!values.value("tempo_multiplier").isUndefined()) {
+        m_tempoMultiplier = values["tempo_multiplier"].toDouble();
+    }
+    // note: accurate comparisons work because these are powers of 2.
+    if (m_tempoMultiplier < 0.25) {
+        m_tempoMultiplier = 0.25;
+    } else if (m_tempoMultiplier > 4.0) {
+        m_tempoMultiplier = 4.0;
+    }
+    m_tempoMultiplierSlider->setValue(log2(m_tempoMultiplier));
+    m_tempoMultiplierLabel->setText("Tempo multiplier " + QString::number(m_tempoMultiplier, 'f', 2));
+
+}
+
+void MainWindow::writeLoopSettings(QString loopName)
+{
+    //Write video-specific settings to its frame folder
+    QString settingsFileName = "frames/" + loopName + "/" + "settings.JSON";
+
+    QFile saveFile(settingsFileName);
+
+    if (!saveFile.open(QIODevice::WriteOnly)) {
+        qWarning("Coudn't save settings. Is the folder write-protected?");
+        return;
+    }
+
+    QJsonObject settingsData;
+    settingsData["add_reversed_frames"] = m_addReversedFrames;
+    settingsData["tempo_multiplier"] = m_tempoMultiplier;
+
+    saveFile.write(QJsonDocument(settingsData).toJson());
+
+}
+
 void MainWindow::setVideoFullScreen()
 {
     if (m_graphicsWidget->windowState() == Qt::WindowFullScreen) {
@@ -610,7 +673,7 @@ void MainWindow::setVideoFullScreen()
         } else {
             m_layout->addWidget(m_audioGroup, 1);
             m_layout->removeWidget(m_loopSelect);
-            m_videoLayout->addWidget(m_reverseFramesCheckBox, 2, 0, 1, 3);
+            //m_videoLayout->addWidget(m_reverseFramesCheckBox, 2, 0, 1, 3);
             m_videoLayout->addWidget(m_loopSelect, 3, 1, 1, 2);
             m_videoGroup->setLayout(m_videoLayout);
             m_layout->addWidget(m_videoGroup, 1);
@@ -629,7 +692,7 @@ void MainWindow::setVideoFullScreen()
         } else {
             m_layout->removeWidget(m_audioGroup);
             m_layout->removeWidget(m_videoGroup);
-            m_layout->addWidget(m_reverseFramesCheckBox);
+            //m_layout->addWidget(m_reverseFramesCheckBox);
             m_layout->addWidget(m_loopSelect);
             m_layout->invalidate();
             QTimer::singleShot(50, this, &MainWindow::fixSize);
@@ -674,8 +737,10 @@ void MainWindow::setAddReversedFrames()
 
 void MainWindow::setVideoLoop(QString loopName)
 {
+    writeLoopSettings(m_loopName);
     m_loopName = loopName;
     m_graphicsWidget->setFrameFolder(loopName);
+    readLoopSettings(m_loopName);
     updateTempo();
 }
 
