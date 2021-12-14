@@ -16,7 +16,7 @@ class AudioDevice : public QObject
 {
     Q_OBJECT
 public:
-    AudioDevice(QObject *parent, QString defaultDevice);
+    AudioDevice(QObject *parent, QString defaultDevice, bool showAllInputs);
     ~AudioDevice();
 
     QStringList getAudioDevices();
@@ -43,6 +43,8 @@ private:
     QAudioInput *m_audioInput;
     QIODevice *m_input;
     AudioDataHandler *m_audioDataHandler;
+
+    bool m_showAllInputs;
 };
 
 #endif

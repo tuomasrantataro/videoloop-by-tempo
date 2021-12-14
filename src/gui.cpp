@@ -10,8 +10,9 @@
 #include <QJsonValue>
 #include <QHBoxLayout>
 #include <QGridLayout>
+//#include <QCommandLineParser>
 
-MainWindow::MainWindow()
+MainWindow::MainWindow(QCommandLineParser *parser) : m_parser(parser)
 {
     
     if (checkDirectories()) {
@@ -216,7 +217,8 @@ MainWindow::MainWindow()
     m_rhythm = new RhythmExtractor();
     connect(m_rhythm, &RhythmExtractor::tempoReady, this, &MainWindow::autoUpdateTempo);
 
-    m_audio = new AudioDevice(this, m_device);
+    bool showAllInputs = parser->isSet(QCommandLineOption("a"));
+    m_audio = new AudioDevice(this, m_device, showAllInputs);
     connect(m_audio, &AudioDevice::dataReady, this, &MainWindow::calculateTempo);
 
     QStringList audioDevices = m_audio->getAudioDevices();

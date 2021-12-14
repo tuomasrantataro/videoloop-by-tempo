@@ -18,6 +18,7 @@
 #include <QCloseEvent>
 #include <vector>
 #include <list>
+#include <QCommandLineParser>
 
 class VulkanWindow;
 
@@ -25,7 +26,7 @@ class MainWindow : public QWidget
 {
     Q_OBJECT
 public:
-    MainWindow();
+    MainWindow(QCommandLineParser *parser);
 
     int checkInit();
 
@@ -75,6 +76,8 @@ private:
     bool detectDoubleTempoJump(float newTempo);
 
     int checkDirectories();
+
+    QCommandLineParser *m_parser;
 
     OpenGLWidget *m_graphicsWidget;
 

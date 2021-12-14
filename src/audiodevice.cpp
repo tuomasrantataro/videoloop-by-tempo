@@ -1,7 +1,7 @@
 #include "audiodevice.h"
 #include <QList>
 
-AudioDevice::AudioDevice(QObject *parent, QString defaultDevice) : parent(parent)
+AudioDevice::AudioDevice(QObject *parent, QString defaultDevice, bool showAllInputs) : parent(parent), m_showAllInputs(showAllInputs)
 {
     m_pullTimer = new QTimer();
     m_pullTimer->setInterval(1000);
@@ -22,7 +22,7 @@ void AudioDevice::setupDevice(QString deviceName)
     for (auto it = devices.begin(); it != devices.end(); it++) {
         if (it->deviceName().compare(deviceName) == 0) {
             m_monitors.push_front(*it);
-        } else if (it->deviceName().endsWith("monitor")) {
+        } else if (m_showAllInputs || it->deviceName().endsWith("monitor")) {
             m_monitors.append(*it);
         }
     }
