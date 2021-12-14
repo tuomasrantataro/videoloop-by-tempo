@@ -12,5 +12,10 @@ int main(int argc, char *argv[])
 
     MainWindow mainWindow;
 
-    return app.exec();
+    if (mainWindow.checkInit()) {
+        return 1;
+        
+    } else {
+        return app.exec();
+    }
 }

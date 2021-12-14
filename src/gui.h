@@ -27,6 +27,8 @@ class MainWindow : public QWidget
 public:
     MainWindow();
 
+    int checkInit();
+
 protected:
     void closeEvent(QCloseEvent *e);
 
@@ -71,6 +73,8 @@ private:
     void writeLoopSettings(QString loopName);
 
     bool detectDoubleTempoJump(float newTempo);
+
+    int checkDirectories();
 
     OpenGLWidget *m_graphicsWidget;
 
@@ -135,6 +139,9 @@ private:
     RhythmExtractor *m_rhythm;
 
     QShortcut *m_keySpacebar;
+
+    int m_initError = 0;
+
 };
 
 #endif
