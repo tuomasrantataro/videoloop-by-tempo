@@ -674,6 +674,7 @@ void MainWindow::writeLoopSettings(QString loopName)
 void MainWindow::setVideoFullScreen()
 {
     if (m_graphicsWidget->windowState() == Qt::WindowFullScreen) {
+        m_graphicsWidget->setWindowState(Qt::WindowNoState);
         m_graphicsWidget->setParent(this);
         m_layout->insertWidget(0, m_graphicsWidget, 5);
         if (!m_showTempoControls) {
