@@ -118,7 +118,6 @@ void DBusWatcher::propertiesChanged(QString interface, QMap<QString, QVariant> s
 
     if (trackid.compare(m_trackid)) {
         emit trackChanged(m_trackid);
-        m_trackid = trackid;
 
         quint64 previousTrackChange = m_lastTrackChange;
         m_lastTrackChange = QDateTime::currentMSecsSinceEpoch();
@@ -141,6 +140,8 @@ void DBusWatcher::propertiesChanged(QString interface, QMap<QString, QVariant> s
             saveFile.close();
 
         }
+
+        m_trackid = trackid;
 
     }
 }
