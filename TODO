@@ -8,9 +8,15 @@ Milestone 1: Use DBus to detect when song changes on Spotify
 [Mostly done]
 - [DONE] Catch the DBus signal (PropertiesChanged) with a Qt Slot
     - The slot will be used to trigger audio analysis later
-- Make sure that the signal means that the song has changed
+- [PARTIAL] Make sure that the signal means that the song has changed
     - And filter out if song is paused, forwarded, etc. and discard data
-        - Take timestamp of start and end times, check against spotify-given length
+        - [DONE] Take timestamp of start and end times, check against spotify-given length
+    [WONTFIX] - It's impossible to notice song when song ends if looping only 1 song in Spotify.
+    [FIXME] - There is some timing delay when track changes in spotify. Spotify emits 6 signals when this happens.
+            Using `dbus-monitor "type='signal',sender='org.mpris.MediaPlayer2.spotify'" --profile`
+            it can be calculated that timing difference between the last of these 6 signals and the first when song changes
+            deviates only ~0.1sec from spotify's reported song length. This should be explored if accurate beat hits are wanted.
+            If accuracy is wanted, compare time inside the program to the one given by dbus-monitor.
 
 Milestone 2: Create new audio data handler for whole song
 [NOT STARTED]

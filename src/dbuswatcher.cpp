@@ -20,6 +20,53 @@ DBusWatcher::~DBusWatcher()
 
 void DBusWatcher::propertiesChanged(QString interface, QMap<QString, QVariant> signalData, QStringList l)
 {
+    // interfaceName: the interface where properties changed (org.mpris.MediaPlayer2.Player)
+    // signalData: map of information received. structure of the map:
+    // QVariantMap {
+    //      {
+    //          key: QString "Metadata"
+    //          QVariant: type Map<QString, QVariant>
+    //              {
+    //                  key: QString "mpris:trackid"
+    //                  QVariant: QString "spotify:track:3E4pe9Bzbt6emadOMBieoJ"
+    //              }
+    //              {
+    //                  key: QString "mpris:length"
+    //                  QVariant:    qlonglong 238510000
+    //              }
+    //              {
+    //                  key: QString "xesam:title"
+    //                  QVariant:    QString "Song title"
+    //              }
+    //              {
+    //                  key: QString "xesam:artist"
+    //                  QVariant:    QString "Artist name"
+    //              }
+    //
+    //              ... other entries
+    //      }
+    //      {
+    //          key: QString "PlaybackStatus"
+    //          QVariant: QString "Playing"
+    //      }
+    // }
+    //
+    //
+    // All properties exported by Spotify:
+    // "mpris:artUrl"
+    // "mpris:length"
+    // "mpris:trackid"
+    // "xesam:album"
+    // "xesam:albumArtist"
+    // "xesam:artist"
+    // "xesam:autoRating"
+    // "xesam:discNumber"
+    // "xesam:title"
+    // "xesam:trackNumber"
+    // "xesam:url"
+    //
+    //
+
     if (!signalData.contains("Metadata")) {
         qDebug("Spotify metadata not found when properties changed. Keys in map:");
         qDebug() << signalData.keys();
@@ -56,14 +103,44 @@ void DBusWatcher::propertiesChanged(QString interface, QMap<QString, QVariant> s
     QStringList keys = newMap.keys();
     for (auto key = keys.begin(); key != keys.end(); key++) {
         qDebug() << *key;
-    }*/
+    }
 
     QString artist = newMap["xesam:artist"].toString();
     qDebug() << "Track artist: " << artist;
 
     QString title = newMap["xesam:title"].toString();
     qDebug() << "Track title: " << title;
-
+    */
     QString trackid = newMap["mpris:trackid"].toString();
-    qDebug() << "trackid: " << trackid << '\n';
+    
+    //qDebug() << "trackid: " << trackid << '\n';
+    
+
+    if (trackid.compare(m_trackid)) {
+        emit trackChanged(m_trackid);
+        m_trackid = trackid;
+
+        quint64 previousTrackChange = m_lastTrackChange;
+        m_lastTrackChange = QDateTime::currentMSecsSinceEpoch();
+        quint64 trackLength = m_lastTrackChange - previousTrackChange;
+        
+        quint64 oldLength = m_spotifyLength;
+        
+        //qDebug() << "time diff: " << trackLength << " spotify said: " << oldLength;;
+        //qDebug() << "Track changed from " << m_trackid << " to " << trackid;
+        
+        m_spotifyLength = newMap["mpris:length"].toULongLong()/1000;   // change from usec to msec
+
+        QFile saveFile("tracklengthdata.csv");
+
+        if (saveFile.open(QIODevice::WriteOnly | QIODevice::Append | QIODevice::Text)) {
+            QTextStream stream(&saveFile);
+
+            stream << trackid << ',' << trackLength << ',' << oldLength << '\n';
+
+            saveFile.close();
+
+        }
+
+    }
 }
