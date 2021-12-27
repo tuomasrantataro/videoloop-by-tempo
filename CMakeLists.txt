@@ -15,7 +15,7 @@ set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 add_compile_definitions(
     $<$<CONFIG:Release>:QT_NO_DEBUG_OUTPUT>)
 
-find_package(Qt5 COMPONENTS Widgets Multimedia REQUIRED)
+find_package(Qt5 COMPONENTS Widgets Multimedia DBus REQUIRED)
 
 # Import essentia
 add_library(essentia STATIC IMPORTED)
@@ -28,7 +28,8 @@ target_link_libraries(essentia
 
 add_executable(videoloop-by-tempo)
 target_sources(videoloop-by-tempo
-    PRIVATE     src/openglwidget.cpp
+    PRIVATE     src/dbuswatcher.cpp
+                src/openglwidget.cpp
                 src/audiodatahandler.cpp
                 src/audiodevice.cpp
                 src/rhythmextractor.cpp
@@ -42,6 +43,7 @@ target_include_directories(videoloop-by-tempo
 target_link_libraries(videoloop-by-tempo
     PRIVATE     Qt5::Widgets
                 Qt5::Multimedia
+                Qt5::DBus
                 essentia)
 
 # Create a folder which has only the relevant files for using the program

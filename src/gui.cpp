@@ -236,6 +236,8 @@ MainWindow::MainWindow(QCommandLineParser *parser) : m_parser(parser)
         setVideoFullScreen();
     }
 
+    m_dbusWatcher = new DBusWatcher;
+
 }
 
 void MainWindow::updateTempo()

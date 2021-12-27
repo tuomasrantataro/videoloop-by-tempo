@@ -4,6 +4,7 @@
 #include "audiodevice.h"
 #include "rhythmextractor.h"
 #include "openglwidget.h"
+#include "dbuswatcher.h"
 
 #include <QWidget>
 #include <QLineEdit>
@@ -144,6 +145,8 @@ private:
     QShortcut *m_keySpacebar;
 
     int m_initError = 0;
+
+    DBusWatcher *m_dbusWatcher;
 
 };
 
