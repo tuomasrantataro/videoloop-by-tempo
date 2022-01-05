@@ -30,7 +30,6 @@ add_executable(videoloop-by-tempo)
 target_sources(videoloop-by-tempo
     PRIVATE     src/dbuswatcher.cpp
                 src/openglwidget.cpp
-                src/audiodatahandler.cpp
                 src/audiodevice.cpp
                 src/rhythmextractor.cpp
                 src/gui.cpp

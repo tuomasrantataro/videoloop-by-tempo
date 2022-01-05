@@ -1,10 +1,10 @@
-
 #include "rhythmextractor.h"
 
 RhythmExtractor::RhythmExtractor(QObject *parent)
     : QThread(parent)
 {
     qRegisterMetaType<tempoPair>("TempoPair");
+    qRegisterMetaType<TempoData>("TempoData");
 }
 
 RhythmExtractor::~RhythmExtractor()
@@ -17,11 +17,11 @@ RhythmExtractor::~RhythmExtractor()
     wait();
 }
 
-void RhythmExtractor::calculateTempo(std::vector<uint8_t> audioData)
+void RhythmExtractor::calculateTempo(const std::vector<uint8_t>& audioData)
 {
     QMutexLocker locker(&mutex);
 
-    this->data = std::vector<essentia::Real>(audioData.begin(), audioData.end());
+    m_data = std::vector<essentia::Real>(audioData.begin(), audioData.end());
 
     if (!isRunning()) {
         start(LowPriority);
@@ -33,38 +33,52 @@ void RhythmExtractor::calculateTempo(std::vector<uint8_t> audioData)
 
 void RhythmExtractor::run()
 {
+    using namespace essentia;
+
     essentia::init();
 
-    mutex.lock();
-    const std::vector<essentia::Real> audio = this->data;
-    mutex.unlock();
+    standard::AlgorithmFactory& factory = standard::AlgorithmFactory::instance();
 
-    essentia::Pool pool;
+    standard::Algorithm* rhythm = factory.create("RhythmExtractor2013",
+                                                 "method", "multifeature");
 
-    essentia::streaming::AlgorithmFactory& factory = essentia::streaming::AlgorithmFactory::instance();
+    standard::Algorithm* histo = factory.create("BpmHistogramDescriptors");
 
-    essentia::streaming::Algorithm* rhythmextractor = factory.create("RhythmExtractor2013",
-                                                                     "method", "multifeature");
+    rhythm->input("signal").set(m_data);
 
-    essentia::streaming::VectorInput<essentia::Real, 1> input(&audio);
-    input.setAcquireSize(audio.size());
-    input.configure();
+    std::vector<essentia::Real> ticks, bpmEstimates, bpmIntervals;
+    essentia::Real confidence, bpm;
 
-    input.output("data")                    >> rhythmextractor->input("signal");
-    rhythmextractor->output("ticks")        >> PC(pool, "rhythm.ticks");
-    rhythmextractor->output("confidence")   >> PC(pool, "rhythm.ticks_confidence");
-    rhythmextractor->output("bpm")          >> PC(pool, "rhythm.bpm");
-    rhythmextractor->output("estimates")    >> PC(pool, "rhythm.estimates");
-    rhythmextractor->output("bpmIntervals") >> PC(pool, "rhythm.bpmIntervals");
+    rhythm->output("ticks").set(ticks);
+    rhythm->output("confidence").set(confidence);
+    rhythm->output("bpm").set(bpm);
+    rhythm->output("estimates").set(bpmEstimates);
+    rhythm->output("bpmIntervals").set(bpmIntervals);
 
-    essentia::scheduler::Network network(&input, false);
-    network.run();
+    rhythm->compute();
 
-    float bpm = float(pool.value<essentia::Real>("rhythm.bpm"));
-    float confidence = float(pool.value<essentia::Real>("rhythm.ticks_confidence"));
+    essentia::Real firstPeak, firstPeakWeight, firstPeakSpread;
+    essentia::Real secondPeak, secondPeakWeight, secondPeakSpread;
+    std::vector<essentia::Real> hist;
 
-    emit tempoReady(tempoPair(bpm, confidence));
+    histo->input("bpmIntervals").set(bpmIntervals);
+    histo->output("firstPeakBPM").set(firstPeak);
+    histo->output("firstPeakWeight").set(firstPeakWeight);
+    histo->output("firstPeakSpread").set(firstPeakSpread);
+    histo->output("secondPeakBPM").set(secondPeak);
+    histo->output("secondPeakWeight").set(secondPeakWeight);
+    histo->output("secondPeakSpread").set(secondPeakSpread);
+    histo->output("histogram").set(hist);
+    histo->compute();
+    //qDebug("first peak: %f, w: %f, s: %f", firstPeak, firstPeakWeight, firstPeakSpread);
+    //qDebug("second peak: %f, w: %f, s: %f", secondPeak, secondPeakWeight, secondPeakSpread);
 
-    delete rhythmextractor;
+    TempoData ret = {ticks, confidence, bpm, bpmEstimates, bpmIntervals};
+
+    emit calculationReady(ret);
+    emit tempoReady(tempoPair(ret.BPM, ret.confidence));
+
+    delete rhythm;
+    
     essentia::shutdown();
 }

@@ -3,16 +3,22 @@
 
 AudioDevice::AudioDevice(QObject *parent, QString defaultDevice, bool showAllInputs) : parent(parent), m_showAllInputs(showAllInputs)
 {
-    m_pullTimer = new QTimer();
-    m_pullTimer->setInterval(1000);
-    connect(m_pullTimer, &QTimer::timeout, this, &AudioDevice::writeToBuffer);
 
     setupDevice(defaultDevice);
+
+    // initialize data structures
+    m_wholeTrackData = new std::vector<uint8_t>;
+    m_shortDataBuffer = new std::list<std::vector<uint8_t>>(RING_BUFFER_SIZE, std::vector<uint8_t>());
+    m_shortData = new std::vector<uint8_t>;
+
 }
 
 AudioDevice::~AudioDevice()
 {
-    delete m_audioDataHandler;
+    delete m_wholeTrackData;
+    delete m_shortDataBuffer;
+    delete m_shortData;
+    delete m_audioIn;
 }
 
 void AudioDevice::setupDevice(QString deviceName)
@@ -35,7 +41,7 @@ void AudioDevice::setupDevice(QString deviceName)
 
     m_device = m_monitors[0];
 
-    qDebug("Using audio output: %s", qPrintable(m_device.deviceName()));
+    qDebug("Using audio input: %s", qPrintable(m_device.deviceName()));
 
     m_format.setSampleRate(44100);
     m_format.setChannelCount(1);
@@ -47,17 +53,19 @@ void AudioDevice::setupDevice(QString deviceName)
     QAudioDeviceInfo devInfo(m_device);
     if (!devInfo.isFormatSupported(m_format)) {
         qWarning("Default audio format not supported - trying to use nearest.");
+        qWarning("Requested format:");
+        qWarning() << m_format;
         m_format = devInfo.nearestFormat(m_format);
+        qWarning("Format in use:");
+        qWarning() << m_format;
     }
 
-    m_audioDataHandler = new AudioDataHandler(m_format);
-    m_audioInput = new QAudioInput(m_device, m_format, this);
-    connect(m_audioDataHandler, &AudioDataHandler::dataReady, this, &AudioDevice::dataReady);
+    m_audioIn = new QAudioInput(m_device, m_format, this);
+    m_audioIn->setNotifyInterval(1000); // 1 second
 
-    m_audioDataHandler->start();
-    m_audioInput->start(m_audioDataHandler);
-    m_input = m_audioInput->start();
-    m_pullTimer->start();
+    connect(m_audioIn, &QAudioInput::notify, this, &AudioDevice::processAudioIn);
+    m_inputBuffer.open(QBuffer::ReadWrite);
+    m_audioIn->start(&m_inputBuffer);
 }
 
 QStringList AudioDevice::getAudioDevices()
@@ -72,20 +80,52 @@ QStringList AudioDevice::getAudioDevices()
 
 void AudioDevice::changeAudioInput(QString deviceName)
 {
-    // delete old objects
-    m_pullTimer->stop();
     m_monitors.clear();
-    delete m_audioInput;
-    delete m_audioDataHandler;
+    delete m_audioIn;
+    m_wholeTrackData->clear();
 
     setupDevice(deviceName);
 }
 
-void AudioDevice::writeToBuffer()
+void AudioDevice::emitAndClearSongBuffer()
 {
-    int length = m_audioInput->bytesReady();
-    if (length > 0) {
-        m_audioDataHandler->writeData(m_input->readAll(), length);
-    }
+    emit songDataReady(*m_wholeTrackData);
+    qDebug("song data emitted");
+    m_wholeTrackData->clear();
 }
 
+void AudioDevice::printStateChange(QAudio::State state)
+{
+    qDebug("audiodevice state: %d", state);
+}
+
+void AudioDevice::processAudioIn()
+{
+    m_inputBuffer.seek(0);
+    QByteArray ba = m_inputBuffer.readAll();
+
+    m_inputBuffer.buffer().clear();
+    m_inputBuffer.seek(0);
+
+    updateShortBuffer(ba);
+    updateSongBuffer(ba);
+
+}
+
+void AudioDevice::updateShortBuffer(const QByteArray &data)
+{
+    m_shortDataBuffer->pop_front();
+    m_shortDataBuffer->push_back(std::vector<uint8_t>(data.begin(), data.end()));
+
+    m_shortData->clear();
+    for (auto it = m_shortDataBuffer->begin(); it != m_shortDataBuffer->end(); it++) {
+        m_shortData->insert(m_shortData->end(), it->begin(), it->end());
+    }
+
+    emit dataReady(*m_shortData);
+}
+
+void AudioDevice::updateSongBuffer(const QByteArray &data)
+{
+    m_wholeTrackData->insert(m_wholeTrackData->end(), data.begin(), data.end());
+}

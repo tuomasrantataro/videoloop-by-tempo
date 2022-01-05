@@ -135,7 +135,7 @@ void DBusWatcher::propertiesChanged(QString interface, QMap<QString, QVariant> s
         if (saveFile.open(QIODevice::WriteOnly | QIODevice::Append | QIODevice::Text)) {
             QTextStream stream(&saveFile);
 
-            stream << trackid << ',' << trackLength << ',' << oldLength << '\n';
+            stream << m_trackid << ',' << trackLength << ',' << oldLength << '\n';
 
             saveFile.close();
 

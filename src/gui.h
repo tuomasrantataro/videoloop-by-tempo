@@ -21,8 +21,6 @@
 #include <list>
 #include <QCommandLineParser>
 
-class VulkanWindow;
-
 class MainWindow : public QWidget
 {
     Q_OBJECT
@@ -63,6 +61,11 @@ private slots:
     void saveSettings();
 
     void fixSize();
+
+    void trackBPMDebug(const std::vector<uint8_t> &audioData);
+    void showTrackTempo(TempoData data);
+
+    void saveTrackTempoData(QString trackId);
 
 
 private:
@@ -141,6 +144,7 @@ private:
     AudioDevice *m_audio;
 
     RhythmExtractor *m_rhythm;
+    RhythmExtractor *m_rhythmSong;
 
     QShortcut *m_keySpacebar;
 

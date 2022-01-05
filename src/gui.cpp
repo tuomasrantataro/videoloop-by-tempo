@@ -10,7 +10,6 @@
 #include <QJsonValue>
 #include <QHBoxLayout>
 #include <QGridLayout>
-//#include <QCommandLineParser>
 
 MainWindow::MainWindow(QCommandLineParser *parser) : m_parser(parser)
 {
@@ -192,7 +191,6 @@ MainWindow::MainWindow(QCommandLineParser *parser) : m_parser(parser)
     loopLayout->addWidget(loopLabel, 1);
     loopLayout->addWidget(m_loopSelect, 2);
 
-    //QGridLayout *videoLayout = new QGridLayout;
     m_videoLayout = new QGridLayout;
     m_videoLayout->addWidget(m_startFullScreenCheckBox, 0, 0, 1, 3);
     m_videoLayout->addWidget(m_tempoControlsCheckBox, 1, 0, 1, 3);
@@ -217,9 +215,14 @@ MainWindow::MainWindow(QCommandLineParser *parser) : m_parser(parser)
     m_rhythm = new RhythmExtractor();
     connect(m_rhythm, &RhythmExtractor::tempoReady, this, &MainWindow::autoUpdateTempo);
 
+    //m_rhythmSong = new RhythmExtractor();
+    //connect(m_rhythmSong, &RhythmExtractor::calculationReady, this, &MainWindow::)
+
     bool showAllInputs = parser->isSet(QCommandLineOption("a"));
     m_audio = new AudioDevice(this, m_device, showAllInputs);
-    connect(m_audio, &AudioDevice::dataReady, this, &MainWindow::calculateTempo);
+    connect(m_audio, &AudioDevice::dataReady, m_rhythm, &RhythmExtractor::calculateTempo);
+
+    connect(m_audio, &AudioDevice::songDataReady, this, &MainWindow::trackBPMDebug);
 
     QStringList audioDevices = m_audio->getAudioDevices();
     for (auto it = audioDevices.begin(); it != audioDevices.end(); it++) {
@@ -237,6 +240,8 @@ MainWindow::MainWindow(QCommandLineParser *parser) : m_parser(parser)
     }
 
     m_dbusWatcher = new DBusWatcher;
+    //connect(m_dbusWatcher, &DBusWatcher::trackChanged, this, &MainWindow::trackBPMDebug);
+    //connect(m_dbusWatcher, &DBusWatcher::trackChanged, this, &MainWindow::saveTrackTempoData);
 
 }
 
@@ -380,7 +385,9 @@ void MainWindow::toggleManualTempo()
 
 void MainWindow::calculateTempo(std::vector<uint8_t> data)
 {
-    m_rhythm->calculateTempo(data);
+    qDebug("data sent to tempo calculation");
+    //m_rhythm->calculateTempo(data);
+    qDebug("calculation function return");
 }
 
 void MainWindow::readLowerLimit()
@@ -815,4 +822,31 @@ int MainWindow::checkDirectories()
         return 1;
     }
     return 0;
+}
+
+void MainWindow::trackBPMDebug(const std::vector<uint8_t> &audioData)
+{
+    //qDebug("track bpm calculation triggered");
+    //m_rhythm->calculateTempo(audioData);
+    //qDebug("calculation done");
+}
+
+void MainWindow::showTrackTempo(TempoData data)
+{
+    qDebug("Track tempo: %.2f", data.BPM);
+    qDebug("Track tempo confidence: %.2f", data.confidence);
+    //qDebug("All bpm candidates:");
+    //qDebug() << data.BPMEstimates;
+    //qDebug("Beat intervals:");
+    //qDebug() << data.BPMIntervals;
+    //qDebug("Beat timestamps:");
+    //qDebug() << data.ticks;
+}
+
+void MainWindow::saveTrackTempoData(QString trackId)
+{
+    qDebug("Old track id: %s", qPrintable(trackId));
+    //m_audio->emitAndClearSongBuffer();
+    //auto data = m_rhythm2->
+    //TempoData tempoData = 
 }
