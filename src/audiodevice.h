@@ -15,6 +15,10 @@
 #include <vector>
 #include <list>
 
+#include "types.h"
+
+using namespace MyTypes;
+
 class AudioDevice : public QObject
 {
     Q_OBJECT
@@ -27,16 +31,17 @@ public:
     QStringList getAudioDevices();
     QString getCurrentDevice() { return m_device.deviceName(); }
 
-    void emitAndClearSongBuffer();
 
 public slots:
     void changeAudioInput(QString inputName);
 
     void printStateChange(QAudio::State);
 
+    void emitAndClearSongBuffer(QString s);
+
 signals:
-    void dataReady(std::vector<uint8_t> &data);
-    void songDataReady(std::vector<uint8_t> &data);
+    void dataReady(const AudioData &data, const AudioBufferType type = MyTypes::rolling);
+    void songDataReady(const AudioData &data, const AudioBufferType type = MyTypes::track);
 
 private:
     void setupDevice(QString deviceName);
@@ -58,9 +63,9 @@ private:
 
     bool m_showAllInputs;
 
-    std::vector<uint8_t> *m_wholeTrackData;
-    std::list<std::vector<uint8_t>> *m_shortDataBuffer;    // will be used as a constant size ring buffer
-    std::vector<uint8_t> *m_shortData;
+    AudioData *m_wholeTrackData;
+    std::list<AudioData> *m_shortDataBuffer;    // will be used as a constant size ring buffer
+    AudioData *m_shortData;
 
 };
 

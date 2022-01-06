@@ -1,39 +1,34 @@
 #include "rhythmextractor.h"
 
-RhythmExtractor::RhythmExtractor(QObject *parent)
-    : QThread(parent)
+RhythmExtractor::RhythmExtractor(QObject *parent) : m_parent(parent)
 {
-    qRegisterMetaType<tempoPair>("TempoPair");
-    qRegisterMetaType<TempoData>("TempoData");
+    m_worker = new RhythmWorker;
+    m_worker->moveToThread(&m_workerThread);
+    connect(&m_workerThread, &QThread::finished, m_worker, &QObject::deleteLater);
+    connect(this, &RhythmExtractor::calculateTempo, m_worker, &RhythmWorker::calculateBPM);
+    connect(m_worker, &RhythmWorker::resultReady, this, &RhythmExtractor::calculationReady);
+    m_workerThread.start();
 }
 
 RhythmExtractor::~RhythmExtractor()
 {
-    mutex.lock();
-    abort = true;
-    condition.wakeOne();
-    mutex.unlock();
-
-    wait();
+    m_workerThread.quit();
+    m_workerThread.wait();
 }
 
-void RhythmExtractor::calculateTempo(const std::vector<uint8_t>& audioData)
-{
-    QMutexLocker locker(&mutex);
 
-    m_data = std::vector<essentia::Real>(audioData.begin(), audioData.end());
 
-    if (!isRunning()) {
-        start(LowPriority);
-    } else {
-        restart = true;
-        condition.wakeOne();
-    }
-}
-
-void RhythmExtractor::run()
+void RhythmWorker::calculateBPM(const AudioData& audioData, const AudioBufferType type)
 {
     using namespace essentia;
+
+    if (audioData.begin() == audioData.end()) {
+        // Do nothing if there's no data
+        return;
+    }
+
+
+    std::vector<essentia::Real> data = std::vector<essentia::Real>(audioData.begin(), audioData.end());
 
     essentia::init();
 
@@ -44,7 +39,7 @@ void RhythmExtractor::run()
 
     standard::Algorithm* histo = factory.create("BpmHistogramDescriptors");
 
-    rhythm->input("signal").set(m_data);
+    rhythm->input("signal").set(data);
 
     std::vector<essentia::Real> ticks, bpmEstimates, bpmIntervals;
     essentia::Real confidence, bpm;
@@ -75,8 +70,7 @@ void RhythmExtractor::run()
 
     TempoData ret = {ticks, confidence, bpm, bpmEstimates, bpmIntervals};
 
-    emit calculationReady(ret);
-    emit tempoReady(tempoPair(ret.BPM, ret.confidence));
+    emit resultReady(ret, type);
 
     delete rhythm;
     

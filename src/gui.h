@@ -21,6 +21,15 @@
 #include <list>
 #include <QCommandLineParser>
 
+#include "types.h"
+
+using namespace MyTypes;
+
+typedef struct TrackBPM {
+    QString trackId = "";
+    float BPM = 0.0;
+} TrackBPM;
+
 class MainWindow : public QWidget
 {
     Q_OBJECT
@@ -40,8 +49,8 @@ private slots:
     void updateLockCheckBox();
     void updateFilterCheckBox();
 
-    void autoUpdateTempo(std::pair<float, float> tempoPair);
-    void calculateTempo(std::vector<uint8_t> audioData);
+    void autoUpdateTempo(const TempoData& tempoData);
+    void calculateTempo(const AudioData& audioData);
     void setConfidenceLevel(int value);
 
     void setTempoMultiplier(int value);
@@ -62,11 +71,12 @@ private slots:
 
     void fixSize();
 
-    void trackBPMDebug(const std::vector<uint8_t> &audioData);
-    void showTrackTempo(TempoData data);
+    void saveTrackTempoData();
 
-    void saveTrackTempoData(QString trackId);
+    void setTrackDataId(QString id);
+    void setTrackDataBPM(const TempoData& data);
 
+    void receiveBPMCalculationResult(const TempoData& data, MyTypes::AudioBufferType type);
 
 private:
     void setTempoLimited();
@@ -144,13 +154,14 @@ private:
     AudioDevice *m_audio;
 
     RhythmExtractor *m_rhythm;
-    RhythmExtractor *m_rhythmSong;
 
     QShortcut *m_keySpacebar;
 
     int m_initError = 0;
 
     DBusWatcher *m_dbusWatcher;
+
+    TrackBPM m_trackDataToSave;
 
 };
 

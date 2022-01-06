@@ -7,9 +7,9 @@ AudioDevice::AudioDevice(QObject *parent, QString defaultDevice, bool showAllInp
     setupDevice(defaultDevice);
 
     // initialize data structures
-    m_wholeTrackData = new std::vector<uint8_t>;
-    m_shortDataBuffer = new std::list<std::vector<uint8_t>>(RING_BUFFER_SIZE, std::vector<uint8_t>());
-    m_shortData = new std::vector<uint8_t>;
+    m_wholeTrackData = new AudioData;
+    m_shortDataBuffer = new std::list<AudioData>(RING_BUFFER_SIZE, AudioData());
+    m_shortData = new AudioData;
 
 }
 
@@ -87,10 +87,9 @@ void AudioDevice::changeAudioInput(QString deviceName)
     setupDevice(deviceName);
 }
 
-void AudioDevice::emitAndClearSongBuffer()
+void AudioDevice::emitAndClearSongBuffer(QString s)
 {
-    emit songDataReady(*m_wholeTrackData);
-    qDebug("song data emitted");
+    emit songDataReady(*m_wholeTrackData, MyTypes::track);
     m_wholeTrackData->clear();
 }
 
@@ -115,14 +114,14 @@ void AudioDevice::processAudioIn()
 void AudioDevice::updateShortBuffer(const QByteArray &data)
 {
     m_shortDataBuffer->pop_front();
-    m_shortDataBuffer->push_back(std::vector<uint8_t>(data.begin(), data.end()));
+    m_shortDataBuffer->push_back(AudioData(data.begin(), data.end()));
 
     m_shortData->clear();
     for (auto it = m_shortDataBuffer->begin(); it != m_shortDataBuffer->end(); it++) {
         m_shortData->insert(m_shortData->end(), it->begin(), it->end());
     }
 
-    emit dataReady(*m_shortData);
+    emit dataReady(*m_shortData, MyTypes::rolling);
 }
 
 void AudioDevice::updateSongBuffer(const QByteArray &data)

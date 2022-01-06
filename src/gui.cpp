@@ -11,6 +11,8 @@
 #include <QHBoxLayout>
 #include <QGridLayout>
 
+using namespace MyTypes;
+
 MainWindow::MainWindow(QCommandLineParser *parser) : m_parser(parser)
 {
     
@@ -18,6 +20,13 @@ MainWindow::MainWindow(QCommandLineParser *parser) : m_parser(parser)
         // Exit right away if video frames are not found
         return;
     };
+
+    qRegisterMetaType<TempoData>("TempoData");
+
+    //FIXME: why this is needed in addition to AudioData
+    qRegisterMetaType<std::vector<uint8_t>>("std::vector<uint8_t>");
+    qRegisterMetaType<AudioData>("AudioData");
+    qRegisterMetaType<AudioBufferType>("AudioBufferType");
     
     readSettings();
 
@@ -212,17 +221,14 @@ MainWindow::MainWindow(QCommandLineParser *parser) : m_parser(parser)
 
 
     // Non-layout initializations
-    m_rhythm = new RhythmExtractor();
-    connect(m_rhythm, &RhythmExtractor::tempoReady, this, &MainWindow::autoUpdateTempo);
-
-    //m_rhythmSong = new RhythmExtractor();
-    //connect(m_rhythmSong, &RhythmExtractor::calculationReady, this, &MainWindow::)
+    m_rhythm = new RhythmExtractor(this);
+    connect(m_rhythm, &RhythmExtractor::calculationReady, this, &MainWindow::receiveBPMCalculationResult);
 
     bool showAllInputs = parser->isSet(QCommandLineOption("a"));
     m_audio = new AudioDevice(this, m_device, showAllInputs);
     connect(m_audio, &AudioDevice::dataReady, m_rhythm, &RhythmExtractor::calculateTempo);
 
-    connect(m_audio, &AudioDevice::songDataReady, this, &MainWindow::trackBPMDebug);
+    connect(m_audio, &AudioDevice::songDataReady, m_rhythm, &RhythmExtractor::calculateTempo);
 
     QStringList audioDevices = m_audio->getAudioDevices();
     for (auto it = audioDevices.begin(); it != audioDevices.end(); it++) {
@@ -240,8 +246,8 @@ MainWindow::MainWindow(QCommandLineParser *parser) : m_parser(parser)
     }
 
     m_dbusWatcher = new DBusWatcher;
-    //connect(m_dbusWatcher, &DBusWatcher::trackChanged, this, &MainWindow::trackBPMDebug);
-    //connect(m_dbusWatcher, &DBusWatcher::trackChanged, this, &MainWindow::saveTrackTempoData);
+    connect(m_dbusWatcher, &DBusWatcher::trackChanged, this, &MainWindow::setTrackDataId);
+    connect(m_dbusWatcher, &DBusWatcher::trackChanged, m_audio, &AudioDevice::emitAndClearSongBuffer);
 
 }
 
@@ -299,7 +305,7 @@ bool MainWindow::detectDoubleTempoJump(float newTempo)
     return halfFound || doubleFound;
 }
 
-void MainWindow::autoUpdateTempo(tempoPair tempoData)
+void MainWindow::autoUpdateTempo(const TempoData& tempoData)
 {
     /*TODO: Add filtering. Essentia sometimes outputs single values which vary significantly from
     others, making playback speed jumpy. To fix this, for example require two subsequent values to
@@ -307,7 +313,7 @@ void MainWindow::autoUpdateTempo(tempoPair tempoData)
     
     TODO: Remove half or double tempos found*/
     
-    m_confidenceLevel = tempoData.second;
+    m_confidenceLevel = tempoData.confidence;
     m_confidenceSlider->setValue(int(10*m_confidenceLevel));
 
     if (m_confidenceLevel < m_thresholdLevel) {
@@ -315,7 +321,7 @@ void MainWindow::autoUpdateTempo(tempoPair tempoData)
         return;
     }
 
-    float tempo = tempoData.first;
+    float tempo = tempoData.BPM;
     // filter to integer, since most music uses metronomes with integer bpm
     tempo = round(tempo);
     if (m_filterDouble && detectDoubleTempoJump(tempo)) {
@@ -383,7 +389,7 @@ void MainWindow::toggleManualTempo()
     updateLockCheckBox();
 }
 
-void MainWindow::calculateTempo(std::vector<uint8_t> data)
+void MainWindow::calculateTempo(const AudioData& data)
 {
     qDebug("data sent to tempo calculation");
     //m_rhythm->calculateTempo(data);
@@ -622,7 +628,6 @@ void MainWindow::readLoopSettings(QString loopName)
     QJsonDocument loadDoc;
 
     QString settingsFileName = "frames/" + loopName + "/" + "settings.JSON";
-    //QFile loadFile(QStringLiteral(settingsFileName));
     QFile loadFile(settingsFileName);
 
     if (!loadFile.open(QIODevice::ReadOnly)) {
@@ -824,29 +829,39 @@ int MainWindow::checkDirectories()
     return 0;
 }
 
-void MainWindow::trackBPMDebug(const std::vector<uint8_t> &audioData)
+void MainWindow::saveTrackTempoData()
 {
-    //qDebug("track bpm calculation triggered");
-    //m_rhythm->calculateTempo(audioData);
-    //qDebug("calculation done");
+    // TODO: save info to a database file
+    qDebug("saving tempo data");
+    qDebug() << m_trackDataToSave.trackId << " " << m_trackDataToSave.BPM; // << std::endl;
+    m_trackDataToSave = TrackBPM{ QString(""), 0.0 };
 }
 
-void MainWindow::showTrackTempo(TempoData data)
+void MainWindow::setTrackDataId(QString id)
 {
-    qDebug("Track tempo: %.2f", data.BPM);
-    qDebug("Track tempo confidence: %.2f", data.confidence);
-    //qDebug("All bpm candidates:");
-    //qDebug() << data.BPMEstimates;
-    //qDebug("Beat intervals:");
-    //qDebug() << data.BPMIntervals;
-    //qDebug("Beat timestamps:");
-    //qDebug() << data.ticks;
+    m_trackDataToSave.trackId = id;
+
+    if (m_trackDataToSave.BPM > 0.0) {
+        saveTrackTempoData();
+    }
 }
 
-void MainWindow::saveTrackTempoData(QString trackId)
+void MainWindow::setTrackDataBPM(const TempoData& data)
 {
-    qDebug("Old track id: %s", qPrintable(trackId));
-    //m_audio->emitAndClearSongBuffer();
-    //auto data = m_rhythm2->
-    //TempoData tempoData = 
+    m_trackDataToSave.BPM = data.BPM;
+    //TODO: add some logic to determine if the BPM is valid
+
+    if (QString("").compare(m_trackDataToSave.trackId)) {
+        saveTrackTempoData();
+    }
+}
+
+void MainWindow::receiveBPMCalculationResult(const TempoData& data, MyTypes::AudioBufferType type)
+{
+    if (type == MyTypes::track) {
+        setTrackDataBPM(data);
+    }
+    else {
+        autoUpdateTempo(data);
+    }
 }
