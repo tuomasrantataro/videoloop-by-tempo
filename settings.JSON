@@ -2,6 +2,7 @@
     "add_reversed_frames": true,
     "audio_device": "alsa_output.pci-0000_00_1f.3.analog-stereo.monitor",
     "confidence_threshold": 3,
+    "filter_double": false,
     "limit_tempo": false,
     "screen": 0,
     "show_tempo_controls": false,

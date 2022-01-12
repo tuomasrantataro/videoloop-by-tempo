@@ -45,7 +45,6 @@ private slots:
     void updateFilterCheckBox();
 
     void autoUpdateTempo(const TempoData& tempoData);
-    void calculateTempo(const AudioData& audioData);
     void setConfidenceLevel(int value);
 
     void setTempoMultiplier(int value);
@@ -68,7 +67,7 @@ private slots:
 
     void saveTrackTempoData();
 
-    void setTrackDataId(QString id, QString artist, QString title);
+    void setTrackDataId(QString oldTrackId, QString oldArtist, QString oldTitle, QString newTrackId);
     void setTrackDataBPM(const TempoData& data);
 
     void receiveBPMCalculationResult(const TempoData& data, MyTypes::AudioBufferType type);

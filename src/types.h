@@ -40,7 +40,7 @@ typedef struct TrackData {
         peak2 = data.peak2;
         power2 = data.power2;
         spread2 = data.spread2;
-        trackId = trackId_; //trackId.insert(0, trackId);
+        trackId = trackId_;
         artist = artist_;
         title = track_;
     }

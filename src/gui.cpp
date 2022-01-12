@@ -220,14 +220,21 @@ MainWindow::MainWindow(QCommandLineParser *parser) : m_parser(parser)
     setLayout(m_layout);
 
 
-    // Non-layout initializations
+    m_keySpacebar = new QShortcut(this);
+    m_keySpacebar->setKey(Qt::Key_Space);
+    connect(m_keySpacebar, &QShortcut::activated, this, &MainWindow::toggleManualTempo);
+
+
+    /// Non-UI initializations
+
+    // Rhythm data calculation
     m_rhythm = new RhythmExtractor(this);
     connect(m_rhythm, &RhythmExtractor::calculationReady, this, &MainWindow::receiveBPMCalculationResult);
 
+    // Audio device in use
     bool showAllInputs = parser->isSet(QCommandLineOption("a"));
     m_audio = new AudioDevice(this, m_device, showAllInputs);
     connect(m_audio, &AudioDevice::dataReady, m_rhythm, &RhythmExtractor::calculateTempo);
-
     connect(m_audio, &AudioDevice::songDataReady, m_rhythm, &RhythmExtractor::calculateTempo);
 
     QStringList audioDevices = m_audio->getAudioDevices();
@@ -237,25 +244,24 @@ MainWindow::MainWindow(QCommandLineParser *parser) : m_parser(parser)
     connect(m_audioSelect, &QComboBox::currentTextChanged, m_audio, &AudioDevice::changeAudioInput);
     connect(m_audio, &AudioDevice::deviceChanged, this, &MainWindow::invalidateTrackData);
 
-    m_keySpacebar = new QShortcut(this);
-    m_keySpacebar->setKey(Qt::Key_Space);
-    connect(m_keySpacebar, &QShortcut::activated, this, &MainWindow::toggleManualTempo);
+    // Get data from Spotify through D-Bus
+    m_dbusWatcher = new DBusWatcher;
+    connect(m_dbusWatcher, &DBusWatcher::trackChanged, this, &MainWindow::setTrackDataId);
+    connect(m_dbusWatcher, &DBusWatcher::invalidateData, this, &MainWindow::invalidateTrackData);
+
+    // Get data after we get signal from Spotify that is has changed track
+    connect(this, &MainWindow::trackCalculationNeeded, m_audio, &AudioDevice::emitAndClearSongBuffer);
+
+    // Save track tempo data to a database
+    bool saveTrackData = !parser->isSet(QCommandLineOption("n"));
+    m_trackDBManager = new DBManager(saveTrackData);
+
+
 
     this->show();
     if (m_startAsFullScreen) {
         setVideoFullScreen();
     }
-
-    m_dbusWatcher = new DBusWatcher;
-    connect(m_dbusWatcher, &DBusWatcher::trackChanged, this, &MainWindow::setTrackDataId);
-    connect(m_dbusWatcher, &DBusWatcher::invalidateData, this, &MainWindow::invalidateTrackData);
-
-    connect(this, &MainWindow::trackCalculationNeeded, m_audio, &AudioDevice::emitAndClearSongBuffer);
-    //connect(m_dbusWatcher, &DBusWatcher::trackChanged, m_audio, &AudioDevice::emitAndClearSongBuffer);
-
-    bool saveTrackData = !parser->isSet(QCommandLineOption("n"));
-    m_trackDBManager = new DBManager(saveTrackData);
-
 }
 
 void MainWindow::updateTempo()
@@ -394,13 +400,6 @@ void MainWindow::toggleManualTempo()
 {
     m_lockCheckBox->setChecked(!m_lockCheckBox->isChecked());
     updateLockCheckBox();
-}
-
-void MainWindow::calculateTempo(const AudioData& data)
-{
-    qDebug("data sent to tempo calculation");
-    //m_rhythm->calculateTempo(data);
-    qDebug("calculation function return");
 }
 
 void MainWindow::readLowerLimit()
@@ -838,44 +837,42 @@ int MainWindow::checkDirectories()
 
 void MainWindow::saveTrackTempoData()
 {
-    qDebug("Saving (maybe) data");
     if (!m_invalidTrackData && m_trackData.confidence > 1.0 && QString("").compare(m_trackData.trackId)) {
         m_trackDBManager->writeBPM(m_trackData);
+        qDebug("Saving tempo data to track database:\n\t"
+               "%s | %3.1f | %s - %s",
+               qPrintable(m_trackData.trackId),
+               m_trackData.BPM,
+               qPrintable(m_trackData.artist),
+               qPrintable(m_trackData.title));
     }
-    else {
-        qDebug("Track data not saved because it was invalided (song paused etc.) or bpm confidence was too low");
-    }
+
+    // Reset track data invalidation for the next track
     m_invalidTrackData = false;
 }
 
-void MainWindow::setTrackDataId(QString trackId, QString artist, QString title)
+void MainWindow::setTrackDataId(QString oldTrackId, QString oldArtist, QString oldTitle, QString newTrackId)
 {
-    m_trackData.trackId = trackId;
-    m_trackData.artist = artist;
-    m_trackData.title = title;
+    m_trackData.trackId = oldTrackId;
+    m_trackData.artist = oldArtist;
+    m_trackData.title = oldTitle;
 
     emit trackCalculationNeeded();
 }
 
 void MainWindow::setTrackDataBPM(const TempoData& data)
 {
-    QString artist = m_trackData.artist;
-    QString title = m_trackData.title;
-    QString trackId = m_trackData.trackId;
 
-    m_trackData = MyTypes::TrackData(data, trackId, artist, title);
+    m_trackData = MyTypes::TrackData(data,
+                                     m_trackData.trackId,
+                                     m_trackData.artist,
+                                     m_trackData.title);
 
-    //TODO: add some logic to determine if the BPM is valid
-
-
-    //if (QString("").compare(m_trackData.trackId)) {
-        saveTrackTempoData();
-    //}
+    saveTrackTempoData();
 }
 
 void MainWindow::receiveBPMCalculationResult(const TempoData& data, MyTypes::AudioBufferType type)
 {
-    //qDebug("calculation results came. type: %d", type);
     if (type == MyTypes::track) {
         setTrackDataBPM(data);
     }
@@ -886,6 +883,5 @@ void MainWindow::receiveBPMCalculationResult(const TempoData& data, MyTypes::Aud
 
 void MainWindow::invalidateTrackData()
 {
-    qDebug("Invalidating track data.");
     m_invalidTrackData = true;
 }

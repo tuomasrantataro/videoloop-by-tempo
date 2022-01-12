@@ -37,7 +37,6 @@ public slots:
 
     void printStateChange(QAudio::State);
 
-    //void emitAndClearSongBuffer(QString id, QString a, QString t);
     void emitAndClearSongBuffer();
 
 signals:
@@ -66,7 +65,7 @@ private:
     bool m_showAllInputs;
 
     AudioData *m_wholeTrackData;
-    std::list<AudioData> *m_shortDataBuffer;    // constant size ring buffer
+    std::list<AudioData> *m_shortDataBuffer;    // used as constant size ring buffer
     AudioData *m_shortData;
 
 };

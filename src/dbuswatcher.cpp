@@ -74,9 +74,8 @@ void DBusWatcher::propertiesChanged(QString interface, QMap<QString, QVariant> s
     }
 
     QVariant playbackStatus = signalData["PlaybackStatus"];
-    //qDebug("Playback status: %s", qPrintable(cont.toString()));
     if (!QString("Paused").compare(playbackStatus.toString())) {
-        //qDebug("Paused.");
+        // Invalidate song audio data if it was paused
         emit invalidateData();
     }
 
@@ -106,63 +105,29 @@ void DBusWatcher::propertiesChanged(QString interface, QMap<QString, QVariant> s
         newMap.insert(key, arg);
     }
 
-    /*
-    QStringList keys = newMap.keys();
-    for (auto key = keys.begin(); key != keys.end(); key++) {
-        qDebug() << *key;
-    }
-    */
-    QString artist = newMap["xesam:artist"].toString();
-    //qDebug() << "Track artist: " << artist;
+    QString newTrackId = newMap["mpris:trackid"].toString();
+    QString newArtist = newMap["xesam:artist"].toString();
+    QString newTitle = newMap["xesam:title"].toString();
 
-    QString title = newMap["xesam:title"].toString();
-    //qDebug() << "Track title: " << title;
-    
-    QString trackid = newMap["mpris:trackid"].toString();
-    
-    //qDebug() << "trackid: " << trackid << '\n';
-    
+    if (newTrackId.compare(m_oldTrackId)) {
 
-    if (trackid.compare(m_trackid)) {
-        //qDebug("previous track things: %s -- %s", qPrintable(m_artist), qPrintable(m_title));
-
-        //if (m_spotifyLength > 0) {
-            // this skips the first (incomplete) whole track recording
-        emit trackChanged(m_trackid, m_artist, m_title);
-        //}
+        emit trackChanged(m_oldTrackId, m_oldArtist, m_oldTitle, newTrackId);
 
         quint64 previousTrackChange = m_lastTrackChange;
         m_lastTrackChange = QDateTime::currentMSecsSinceEpoch();
         quint64 trackLength = m_lastTrackChange - previousTrackChange;
         
-        quint64 oldLength = m_spotifyLength;
-        
-        qDebug() << "measured: " << trackLength << " spotify said: " << oldLength;
-        qint64 diff = abs((long)trackLength - (long)oldLength);
-        qDebug() << "diff: " << diff;
+        qint64 diff = abs((long)trackLength - (long)m_spotifyLength);
 
         if (diff > 1500) {
             emit invalidateData();
         }
-        //qDebug() << "Track changed from " << m_trackid << " to " << trackid;
-        
-        
+
         m_spotifyLength = newMap["mpris:length"].toULongLong()/1000;   // change from usec to msec
-/*
-        QFile saveFile("tracklengthdata.csv");
 
-        if (saveFile.open(QIODevice::WriteOnly | QIODevice::Append | QIODevice::Text)) {
-            QTextStream stream(&saveFile);
-
-            stream << m_trackid << ',' << trackLength << ',' << oldLength << '\n';
-
-            saveFile.close();
-
-        }*/
-
-        m_trackid = trackid;
-        m_artist = artist;
-        m_title = title;
+        m_oldTrackId = newTrackId;
+        m_oldArtist = newArtist;
+        m_oldTitle = newTitle;
 
     }
 }

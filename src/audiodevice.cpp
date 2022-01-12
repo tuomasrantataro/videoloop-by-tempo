@@ -1,5 +1,6 @@
-#include "audiodevice.h"
 #include <QList>
+
+#include "audiodevice.h"
 
 AudioDevice::AudioDevice(QObject *parent, QString defaultDevice, bool showAllInputs) : parent(parent), m_showAllInputs(showAllInputs)
 {
@@ -88,7 +89,6 @@ void AudioDevice::changeAudioInput(QString deviceName)
     emit deviceChanged();
 }
 
-//void AudioDevice::emitAndClearSongBuffer(QString s, QString a, QString t)
 void AudioDevice::emitAndClearSongBuffer()
 {
     emit songDataReady(*m_wholeTrackData, MyTypes::track);
@@ -97,7 +97,7 @@ void AudioDevice::emitAndClearSongBuffer()
 
 void AudioDevice::printStateChange(QAudio::State state)
 {
-    qDebug("audiodevice state: %d", state);
+    qDebug("audiodevice state changed to: %d", state);
 }
 
 void AudioDevice::processAudioIn()

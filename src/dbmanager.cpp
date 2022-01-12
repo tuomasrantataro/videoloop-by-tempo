@@ -3,7 +3,7 @@
 DBManager::DBManager(bool saveTrackData) : m_saveTrackData(saveTrackData)
 {
     if (!createConnection()) {
-        qDebug("Database connection failed. Is the QT SQLITE driver installed?");
+        qWarning("Database connection failed. Is the QT SQLITE driver installed?");
         return;
     }
 
@@ -46,14 +46,9 @@ bool DBManager::createConnection()
 
 void DBManager::writeBPM(MyTypes::TrackData& data)
 {
-    qDebug("data to query:");
-    qDebug() << data.artist << data.title << data.trackId;
-    qDebug() << data.BPM << data.confidence;
-    qDebug() << data.peak1 << data.power1 << data.spread1;
-    qDebug() << data.peak2 << data.power2 << data.spread2;
 
+    // Do not save data if flag '-n' is used
     if (!m_saveTrackData) {
-        qDebug("No data saved to database because of flag \"-n\"");
         return;
     }
 
@@ -65,8 +60,8 @@ void DBManager::writeBPM(MyTypes::TrackData& data)
 
     query.next();
 
+    // Do not overwrite already existing track data
     if (query.isValid()) {
-        qDebug("Will not add the track to database. Reason: It already exists.");
         return;
     }
 
@@ -86,18 +81,12 @@ void DBManager::writeBPM(MyTypes::TrackData& data)
     query.bindValue(":artist", data.artist);
     query.bindValue(":title", data.title);
 
-    /*ret = */query.exec();
-    /*
-    if (ret) {
-        qDebug("Succesfully executed the query:\n\t");
-        qDebug() << query.executedQuery();
+    bool ret = query.exec();
+    
+    if (!ret) {
+        qWarning("Error executing the track data insert query:\n\t%s", qPrintable(query.lastQuery()));
+        qWarning("Error:\n\t%s", qPrintable(query.lastError().text()));
     }
-    else {
-        qDebug("Error executing the query:\n\t");
-        qDebug() << query.lastQuery() << "\n\t";
-        qDebug("Error:");
-        qDebug() << query.lastError();
-    }*/
 }
 
 void DBManager::readBPMValues()
@@ -111,8 +100,4 @@ void DBManager::readBPMValues()
         float bpm = query.value(1).toFloat();
         m_bpmData.insert(key, bpm);
     }
-
-    //qDebug("%d keys found.", m_bpmData.keys().size());
-    //qDebug() << m_bpmData;
-    //qDebug("last entry: %f", m_bpmData["spotify:track:6yW5l1lCuCT61L463sZJSL"]);
 }
