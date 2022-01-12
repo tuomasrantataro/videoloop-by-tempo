@@ -68,7 +68,17 @@ void RhythmWorker::calculateBPM(const AudioData& audioData, const AudioBufferTyp
     //qDebug("first peak: %f, w: %f, s: %f", firstPeak, firstPeakWeight, firstPeakSpread);
     //qDebug("second peak: %f, w: %f, s: %f", secondPeak, secondPeakWeight, secondPeakSpread);
 
-    TempoData ret = {ticks, confidence, bpm, bpmEstimates, bpmIntervals};
+    TempoData ret = {ticks,
+                     confidence,
+                     bpm,
+                     firstPeak,
+                     firstPeakWeight,
+                     firstPeakSpread,
+                     secondPeak,
+                     secondPeakWeight,
+                     secondPeakSpread,
+                     bpmEstimates,
+                     bpmIntervals};
 
     emit resultReady(ret, type);
 

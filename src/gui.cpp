@@ -235,6 +235,7 @@ MainWindow::MainWindow(QCommandLineParser *parser) : m_parser(parser)
         m_audioSelect->addItem(*it);
     }
     connect(m_audioSelect, &QComboBox::currentTextChanged, m_audio, &AudioDevice::changeAudioInput);
+    connect(m_audio, &AudioDevice::deviceChanged, this, &MainWindow::invalidateTrackData);
 
     m_keySpacebar = new QShortcut(this);
     m_keySpacebar->setKey(Qt::Key_Space);
@@ -247,7 +248,13 @@ MainWindow::MainWindow(QCommandLineParser *parser) : m_parser(parser)
 
     m_dbusWatcher = new DBusWatcher;
     connect(m_dbusWatcher, &DBusWatcher::trackChanged, this, &MainWindow::setTrackDataId);
-    connect(m_dbusWatcher, &DBusWatcher::trackChanged, m_audio, &AudioDevice::emitAndClearSongBuffer);
+    connect(m_dbusWatcher, &DBusWatcher::invalidateData, this, &MainWindow::invalidateTrackData);
+
+    connect(this, &MainWindow::trackCalculationNeeded, m_audio, &AudioDevice::emitAndClearSongBuffer);
+    //connect(m_dbusWatcher, &DBusWatcher::trackChanged, m_audio, &AudioDevice::emitAndClearSongBuffer);
+
+    bool saveTrackData = !parser->isSet(QCommandLineOption("n"));
+    m_trackDBManager = new DBManager(saveTrackData);
 
 }
 
@@ -317,7 +324,7 @@ void MainWindow::autoUpdateTempo(const TempoData& tempoData)
     m_confidenceSlider->setValue(int(10*m_confidenceLevel));
 
     if (m_confidenceLevel < m_thresholdLevel) {
-        qDebug("Confidence too low: %.2f, threshold %.2f", m_confidenceLevel, m_thresholdLevel);
+        //qDebug("Confidence too low: %.2f, threshold %.2f", m_confidenceLevel, m_thresholdLevel);
         return;
     }
 
@@ -337,7 +344,7 @@ void MainWindow::autoUpdateTempo(const TempoData& tempoData)
         average += *it;
     }
     average = average/m_bpmBuffer.size();
-    qDebug("Newest tempo: %.1f | Confidence: %.2f | Average of last 5: %.1f", tempo, m_confidenceLevel, average);
+    //qDebug("Newest tempo: %.1f | Confidence: %.2f | Average of last 5: %.1f", tempo, m_confidenceLevel, average);
 
     if (m_lockCheckBox->isChecked()) {
         return;
@@ -831,37 +838,54 @@ int MainWindow::checkDirectories()
 
 void MainWindow::saveTrackTempoData()
 {
-    // TODO: save info to a database file
-    qDebug("saving tempo data");
-    qDebug() << m_trackDataToSave.trackId << " " << m_trackDataToSave.BPM; // << std::endl;
-    m_trackDataToSave = TrackBPM{ QString(""), 0.0 };
+    qDebug("Saving (maybe) data");
+    if (!m_invalidTrackData && m_trackData.confidence > 1.0 && QString("").compare(m_trackData.trackId)) {
+        m_trackDBManager->writeBPM(m_trackData);
+    }
+    else {
+        qDebug("Track data not saved because it was invalided (song paused etc.) or bpm confidence was too low");
+    }
+    m_invalidTrackData = false;
 }
 
-void MainWindow::setTrackDataId(QString id)
+void MainWindow::setTrackDataId(QString trackId, QString artist, QString title)
 {
-    m_trackDataToSave.trackId = id;
+    m_trackData.trackId = trackId;
+    m_trackData.artist = artist;
+    m_trackData.title = title;
 
-    if (m_trackDataToSave.BPM > 0.0) {
-        saveTrackTempoData();
-    }
+    emit trackCalculationNeeded();
 }
 
 void MainWindow::setTrackDataBPM(const TempoData& data)
 {
-    m_trackDataToSave.BPM = data.BPM;
+    QString artist = m_trackData.artist;
+    QString title = m_trackData.title;
+    QString trackId = m_trackData.trackId;
+
+    m_trackData = MyTypes::TrackData(data, trackId, artist, title);
+
     //TODO: add some logic to determine if the BPM is valid
 
-    if (QString("").compare(m_trackDataToSave.trackId)) {
+
+    //if (QString("").compare(m_trackData.trackId)) {
         saveTrackTempoData();
-    }
+    //}
 }
 
 void MainWindow::receiveBPMCalculationResult(const TempoData& data, MyTypes::AudioBufferType type)
 {
+    //qDebug("calculation results came. type: %d", type);
     if (type == MyTypes::track) {
         setTrackDataBPM(data);
     }
     else {
         autoUpdateTempo(data);
     }
+}
+
+void MainWindow::invalidateTrackData()
+{
+    qDebug("Invalidating track data.");
+    m_invalidTrackData = true;
 }

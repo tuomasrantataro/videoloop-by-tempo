@@ -31,7 +31,7 @@ This program has been tested to work on Ubuntu 20.04, but likely works on any mo
 
 ## Installation
 Install Qt libraries and you're ready to go
-- `libqt5widgets5 libqt5multimedia5 libqt5multimedia5-plugins`
+- `libqt5widgets5 libqt5multimedia5 libqt5multimedia5-plugins libqt5sql5-sqlite`
 
 ## Usage
 Run `videoloop-by-tempo` to launch the program. The working directory must be the directory which contains the `frames` directory. Command line output shows you errors and information if the frames are not found.

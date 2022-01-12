@@ -1,6 +1,7 @@
-#include "gui.h"
 #include <QApplication>
 #include <QCommandLineParser>
+
+#include "gui.h"
 
 
 int main(int argc, char *argv[])
@@ -18,6 +19,8 @@ int main(int argc, char *argv[])
 
     QCommandLineOption showAllInputs({"a", "all-audio-inputs"}, "Show all audio inputs instead of only those ending with \"monitor\".");
     parser.addOption(showAllInputs);
+    QCommandLineOption noTrackDataLogging({"n", "no-track-logging"}, "Disable saving calculated song data to database.");
+    parser.addOption(noTrackDataLogging);
 
     parser.process(app);
 

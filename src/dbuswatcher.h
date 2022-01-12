@@ -15,12 +15,15 @@ public slots:
     void propertiesChanged(QString interface, QMap<QString, QVariant> signalData, QStringList l);
 
 signals:
-    void trackChanged(QString finishedTrack);
+    void trackChanged(QString finishedTrack, QString artist, QString title);
+    void invalidateData();
 
 private:
     QDBusConnection m_bus = QDBusConnection::sessionBus();
 
     QString m_trackid;
+    QString m_artist;
+    QString m_title;
 
     qint64 m_lastTrackChange = QDateTime::currentMSecsSinceEpoch();
     qint64 m_spotifyLength = 0;

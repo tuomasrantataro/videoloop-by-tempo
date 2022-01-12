@@ -1,11 +1,6 @@
 #ifndef MAINWINDOW_H
 #define MAINWINDOW_H
 
-#include "audiodevice.h"
-#include "rhythmextractor.h"
-#include "openglwidget.h"
-#include "dbuswatcher.h"
-
 #include <QWidget>
 #include <QLineEdit>
 #include <QCheckBox>
@@ -21,14 +16,14 @@
 #include <list>
 #include <QCommandLineParser>
 
+#include "audiodevice.h"
+#include "rhythmextractor.h"
+#include "openglwidget.h"
+#include "dbuswatcher.h"
+#include "dbmanager.h"
 #include "types.h"
 
 using namespace MyTypes;
-
-typedef struct TrackBPM {
-    QString trackId = "";
-    float BPM = 0.0;
-} TrackBPM;
 
 class MainWindow : public QWidget
 {
@@ -73,10 +68,12 @@ private slots:
 
     void saveTrackTempoData();
 
-    void setTrackDataId(QString id);
+    void setTrackDataId(QString id, QString artist, QString title);
     void setTrackDataBPM(const TempoData& data);
 
     void receiveBPMCalculationResult(const TempoData& data, MyTypes::AudioBufferType type);
+
+    void invalidateTrackData();
 
 private:
     void setTempoLimited();
@@ -161,7 +158,14 @@ private:
 
     DBusWatcher *m_dbusWatcher;
 
-    TrackBPM m_trackDataToSave;
+    DBManager *m_trackDBManager;
+
+    TrackData m_trackData;
+
+    bool m_invalidTrackData = false;
+
+signals:
+    void trackCalculationNeeded();
 
 };
 

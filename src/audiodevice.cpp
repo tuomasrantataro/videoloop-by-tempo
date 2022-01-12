@@ -85,9 +85,11 @@ void AudioDevice::changeAudioInput(QString deviceName)
     m_wholeTrackData->clear();
 
     setupDevice(deviceName);
+    emit deviceChanged();
 }
 
-void AudioDevice::emitAndClearSongBuffer(QString s)
+//void AudioDevice::emitAndClearSongBuffer(QString s, QString a, QString t)
+void AudioDevice::emitAndClearSongBuffer()
 {
     emit songDataReady(*m_wholeTrackData, MyTypes::track);
     m_wholeTrackData->clear();

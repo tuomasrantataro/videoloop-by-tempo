@@ -37,11 +37,13 @@ public slots:
 
     void printStateChange(QAudio::State);
 
-    void emitAndClearSongBuffer(QString s);
+    //void emitAndClearSongBuffer(QString id, QString a, QString t);
+    void emitAndClearSongBuffer();
 
 signals:
     void dataReady(const AudioData &data, const AudioBufferType type = MyTypes::rolling);
     void songDataReady(const AudioData &data, const AudioBufferType type = MyTypes::track);
+    void deviceChanged();
 
 private:
     void setupDevice(QString deviceName);
@@ -64,7 +66,7 @@ private:
     bool m_showAllInputs;
 
     AudioData *m_wholeTrackData;
-    std::list<AudioData> *m_shortDataBuffer;    // will be used as a constant size ring buffer
+    std::list<AudioData> *m_shortDataBuffer;    // constant size ring buffer
     AudioData *m_shortData;
 
 };
