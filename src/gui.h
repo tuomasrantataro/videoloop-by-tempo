@@ -65,10 +65,10 @@ private slots:
 
     void fixSize();
 
-    void saveTrackTempoData();
+    void saveTrackData();
 
-    void setTrackDataId(QString oldTrackId, QString oldArtist, QString oldTitle, QString newTrackId);
-    void setTrackDataBPM(const TempoData& data);
+    void updateTrackInfo(QString oldTrackId, QString oldArtist, QString oldTitle, QString newTrackId);
+    void updateTrackTempo(const TempoData& data);
 
     void receiveBPMCalculationResult(const TempoData& data, MyTypes::AudioBufferType type);
 
@@ -162,6 +162,8 @@ private:
     TrackData m_trackData;
 
     bool m_invalidTrackData = false;
+
+    bool m_disableAutoTempo = false;
 
 signals:
     void trackCalculationNeeded();

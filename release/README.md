@@ -40,6 +40,8 @@ The video can be made fullscreen by doubleclicking it, and the fullscreen mode c
 
 By default, the program lists only audio input devices with names ending with `monitor`, since these usually monitor the audio output. If other devices such as microphone are needed, start the program with command line option `-a` or `--all-audio-inputs` to show them.
 
+By default, if listening music with Spotify, the program saves song tempo data to SQLite database `tracktempos.db` and uses the recorded tempos when playing the same track next time. This is almost always more accurate than the default mode which calulates tempo based on last 7 seconds of audio data. To disable saving tempo data, use command line option `-n` or `--no-track-logging`. To disable saved tempo use, rename or delete the database and use the `-n` option.
+
 To add your own video loop, add a subfolder with sequentially named `.jpg` or `.png` images inside `frames` folder and restart the program. 
 
 ### Extracting frames from video

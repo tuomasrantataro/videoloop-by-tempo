@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.14.0)
 project( videoloop-by-tempo
-         VERSION 1.0.0
+         VERSION 1.1.0
          DESCRIPTION "Show video loop which changes its playback speed according to computer's sound output"
          HOMEPAGE_URL "https://github.com/tuomasrantataro/videoloop-by-tempo"
          LANGUAGES CXX )

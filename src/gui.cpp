@@ -246,7 +246,7 @@ MainWindow::MainWindow(QCommandLineParser *parser) : m_parser(parser)
 
     // Get data from Spotify through D-Bus
     m_dbusWatcher = new DBusWatcher;
-    connect(m_dbusWatcher, &DBusWatcher::trackChanged, this, &MainWindow::setTrackDataId);
+    connect(m_dbusWatcher, &DBusWatcher::trackChanged, this, &MainWindow::updateTrackInfo);  // track changed
     connect(m_dbusWatcher, &DBusWatcher::invalidateData, this, &MainWindow::invalidateTrackData);
 
     // Get data after we get signal from Spotify that is has changed track
@@ -325,6 +325,10 @@ void MainWindow::autoUpdateTempo(const TempoData& tempoData)
     be close to each other.
     
     TODO: Remove half or double tempos found*/
+
+    if (m_disableAutoTempo) {
+        return;
+    }
     
     m_confidenceLevel = tempoData.confidence;
     m_confidenceSlider->setValue(int(10*m_confidenceLevel));
@@ -835,46 +839,61 @@ int MainWindow::checkDirectories()
     return 0;
 }
 
-void MainWindow::saveTrackTempoData()
+void MainWindow::saveTrackData()
 {
-    if (!m_invalidTrackData && m_trackData.confidence > 1.0 && QString("").compare(m_trackData.trackId)) {
+    if (!m_invalidTrackData && QString("").compare(m_trackData.trackId)) {
         m_trackDBManager->writeBPM(m_trackData);
         qDebug("Saving tempo data to track database:\n\t"
-               "%s | %3.1f | %s - %s",
+               "%s | %.1f bpm | confidence: %.2f\n\t%s - %s",
                qPrintable(m_trackData.trackId),
                m_trackData.BPM,
+               m_trackData.confidence,
                qPrintable(m_trackData.artist),
                qPrintable(m_trackData.title));
     }
-
+    else {
+        qDebug("Data not saved to track database. Invalid: %d, trackid: %s",
+                m_invalidTrackData, qPrintable(m_trackData.trackId));
+    }
     // Reset track data invalidation for the next track
     m_invalidTrackData = false;
 }
 
-void MainWindow::setTrackDataId(QString oldTrackId, QString oldArtist, QString oldTitle, QString newTrackId)
+void MainWindow::updateTrackInfo(QString oldTrackId, QString oldArtist, QString oldTitle, QString newTrackId)
 {
     m_trackData.trackId = oldTrackId;
     m_trackData.artist = oldArtist;
     m_trackData.title = oldTitle;
 
+    // if tempo data exists for the track which started playing
+    float newBpm = m_trackDBManager->getBPM(newTrackId);
+    if (newBpm > 0.0) {
+        m_disableAutoTempo = true;
+        m_tempo = newBpm;
+
+        updateTempo();
+    }
+    else {
+        m_disableAutoTempo = false;
+    }
+
     emit trackCalculationNeeded();
 }
 
-void MainWindow::setTrackDataBPM(const TempoData& data)
+void MainWindow::updateTrackTempo(const TempoData& data)
 {
-
     m_trackData = MyTypes::TrackData(data,
                                      m_trackData.trackId,
                                      m_trackData.artist,
                                      m_trackData.title);
 
-    saveTrackTempoData();
+    saveTrackData();
 }
 
 void MainWindow::receiveBPMCalculationResult(const TempoData& data, MyTypes::AudioBufferType type)
 {
     if (type == MyTypes::track) {
-        setTrackDataBPM(data);
+        updateTrackTempo(data);
     }
     else {
         autoUpdateTempo(data);

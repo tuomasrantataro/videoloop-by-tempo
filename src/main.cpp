@@ -7,7 +7,7 @@
 int main(int argc, char *argv[])
 {
     QCoreApplication::setAttribute(Qt::AA_ShareOpenGLContexts);
-    QCoreApplication::setApplicationVersion("1.0");
+    QCoreApplication::setApplicationVersion("1.1");
     QApplication app(argc, argv);
     app.setApplicationName("Video Looper");
     QIcon icon("icon_256px.png");

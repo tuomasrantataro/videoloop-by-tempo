@@ -87,6 +87,9 @@ void DBManager::writeBPM(MyTypes::TrackData& data)
         qWarning("Error executing the track data insert query:\n\t%s", qPrintable(query.lastQuery()));
         qWarning("Error:\n\t%s", qPrintable(query.lastError().text()));
     }
+    else {
+        readBPMValues();    // update m_bpmData with the newest entry
+    }
 }
 
 void DBManager::readBPMValues()
