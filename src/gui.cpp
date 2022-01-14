@@ -257,6 +257,9 @@ MainWindow::MainWindow(QCommandLineParser *parser) : m_parser(parser)
     m_trackDBManager = new DBManager(saveTrackData);
 
 
+    m_smoothTempoUpdateTimer = new QTimer();
+    m_smoothTempoUpdateTimer->setInterval(1000);
+    connect(m_smoothTempoUpdateTimer, &QTimer::timeout, this, &MainWindow::smoothUpdateTempo);
 
     this->show();
     if (m_startAsFullScreen) {
@@ -276,6 +279,18 @@ void MainWindow::updateTempo()
     }
     m_graphicsWidget->setBpm(tempo);
     m_setBpmLine->setText(QString::number(tempo, 'f', 1));
+}
+
+void MainWindow::smoothUpdateTempo()
+{
+    if (abs(m_tempo - m_targetTempo) < abs(m_step)) {
+        m_tempo = m_targetTempo;
+        m_smoothTempoUpdateTimer->stop();
+    }
+    else {
+        m_tempo = m_tempo - m_step;
+    }
+    updateTempo();
 }
 
 void MainWindow::setTempoLimited()
@@ -843,7 +858,7 @@ void MainWindow::saveTrackData()
 {
     if (!m_invalidTrackData && QString("").compare(m_trackData.trackId)) {
         m_trackDBManager->writeBPM(m_trackData);
-        qDebug("Saving tempo data to track database:\n\t"
+        qDebug("Tempo data added to database if not already found:\n\t"
                "%s | %.1f bpm | confidence: %.2f\n\t%s - %s",
                qPrintable(m_trackData.trackId),
                m_trackData.BPM,
@@ -852,8 +867,7 @@ void MainWindow::saveTrackData()
                qPrintable(m_trackData.title));
     }
     else {
-        qDebug("Data not saved to track database. Invalid: %d, trackid: %s",
-                m_invalidTrackData, qPrintable(m_trackData.trackId));
+        qDebug("Track data not saved to track database.");
     }
     // Reset track data invalidation for the next track
     m_invalidTrackData = false;
@@ -869,9 +883,11 @@ void MainWindow::updateTrackInfo(QString oldTrackId, QString oldArtist, QString 
     float newBpm = m_trackDBManager->getBPM(newTrackId);
     if (newBpm > 0.0) {
         m_disableAutoTempo = true;
-        m_tempo = newBpm;
 
-        updateTempo();
+        m_targetTempo = newBpm;
+        m_step = (m_tempo - m_targetTempo)/7.0; // TODO: Make non-hardcoded?
+        m_smoothTempoUpdateTimer->start();
+
     }
     else {
         m_disableAutoTempo = false;

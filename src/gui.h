@@ -39,6 +39,8 @@ protected:
 private slots:
     void updateTempo();
 
+    void smoothUpdateTempo();
+
     void manualUpdateTempo();
     void toggleManualTempo();
     void updateLockCheckBox();
@@ -142,6 +144,8 @@ private:
 
     float m_tempo = 60.0;
     float m_tempoLimited = m_tempo;
+    float m_targetTempo;
+    float m_step;
 
     std::list<float> m_bpmBuffer{std::list<float>(5, m_tempo)};
     std::list<float> m_rejectedBpmBuffer{std::list<float>(10, 1.0)};
@@ -164,6 +168,8 @@ private:
     bool m_invalidTrackData = false;
 
     bool m_disableAutoTempo = false;
+
+    QTimer *m_smoothTempoUpdateTimer;
 
 signals:
     void trackCalculationNeeded();
