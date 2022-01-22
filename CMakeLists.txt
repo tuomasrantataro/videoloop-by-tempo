@@ -16,6 +16,7 @@ add_compile_definitions(
     $<$<CONFIG:Release>:QT_NO_DEBUG_OUTPUT>)
 
 find_package(Qt5 COMPONENTS Widgets Multimedia DBus Sql REQUIRED)
+find_package(PulseAudio REQUIRED)
 
 # Import essentia
 add_library(essentia STATIC IMPORTED)
@@ -28,7 +29,8 @@ target_link_libraries(essentia
 
 add_executable(videoloop-by-tempo)
 target_sources(videoloop-by-tempo
-    PRIVATE     src/dbuswatcher.cpp
+    PRIVATE     src/spotifywatcher.cpp
+                src/pulseaudiowatcher.cpp
                 src/dbmanager.cpp
                 src/openglwidget.cpp
                 src/audiodevice.cpp
@@ -45,7 +47,8 @@ target_link_libraries(videoloop-by-tempo
                 Qt5::Multimedia
                 Qt5::DBus
                 Qt5::Sql
-                essentia)
+                essentia
+                pulse)
 
 # Create a folder which has only the relevant files for using the program
 install(TARGETS videoloop-by-tempo DESTINATION "${CMAKE_CURRENT_SOURCE_DIR}/release")

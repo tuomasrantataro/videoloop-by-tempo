@@ -1,6 +1,6 @@
-#include "dbuswatcher.h"
+#include "spotifywatcher.h"
 
-DBusWatcher::DBusWatcher()
+SpotifyWatcher::SpotifyWatcher()
 {
     if (!m_bus.isConnected()) {
         qWarning("Cannot connect to the D-Bus session bus.\n"
@@ -13,12 +13,12 @@ DBusWatcher::DBusWatcher()
 
 }
 
-DBusWatcher::~DBusWatcher()
+SpotifyWatcher::~SpotifyWatcher()
 {
 
 }
 
-void DBusWatcher::propertiesChanged(QString interface, QMap<QString, QVariant> signalData, QStringList l)
+void SpotifyWatcher::propertiesChanged(QString interface, QMap<QString, QVariant> signalData, QStringList l)
 {
     // interfaceName: the interface where properties changed (org.mpris.MediaPlayer2.Player)
     // signalData: map of information received. structure of the map:

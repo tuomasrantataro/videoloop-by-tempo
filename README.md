@@ -22,6 +22,8 @@ This program has been tested to work on Ubuntu 20.04, but likely works on any mo
 ### videoloop-by-tempo
 - Install Qt dev packages
     - `qtbase5-dev qtmultimedia5-dev`
+- Install PulseAudio client dev package:
+    - `libpulse-dev`
 - Build with cmake
     - `mkdir build`
     - `cd build`
