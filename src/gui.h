@@ -19,7 +19,8 @@
 #include "audiodevice.h"
 #include "rhythmextractor.h"
 #include "openglwidget.h"
-#include "dbuswatcher.h"
+#include "spotifywatcher.h"
+#include "pulseaudiowatcher.h"
 #include "dbmanager.h"
 #include "types.h"
 
@@ -30,6 +31,7 @@ class MainWindow : public QWidget
     Q_OBJECT
 public:
     MainWindow(QCommandLineParser *parser);
+    ~MainWindow();
 
     int checkInit();
 
@@ -155,7 +157,9 @@ private:
 
     int m_initError = 0;
 
-    DBusWatcher *m_dbusWatcher;
+    SpotifyWatcher *m_spotifyWatcher;
+
+    PulseaudioWatcher *m_pulseaudioWatcher;
 
     DBManager *m_trackDBManager;
 
@@ -164,6 +168,9 @@ private:
     bool m_invalidTrackData = false;
 
     bool m_disableAutoTempo = false;
+
+    QString m_pa_targetApplication;
+    QStringList m_pa_ignoreApplications;
 
 signals:
     void trackCalculationNeeded();

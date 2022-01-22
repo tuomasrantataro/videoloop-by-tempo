@@ -1,43 +1,25 @@
-What?
-Currently the program matches the video looping speed by analysing the tempo of last 7 seconds of audio output. This works universally, but has 2 problems:
-    - The program will adjust to tempo changes with some delay
-    - It's impossible to make a certain moment of video loop to happen on a beat in music
-These changes will fix the problems above when music is played on Spotify. Support for other music players should also be easy to add with just changing the dbus adapter a little
+TODO:
 
-Milestone 1: Use DBus to detect when song changes on Spotify
-[Mostly done]
-- [DONE] Catch the DBus signal (PropertiesChanged) with a Qt Slot
-    - The slot will be used to trigger audio analysis later
-- [PARTIAL] Make sure that the signal means that the song has changed
-    - And filter out if song is paused, forwarded, etc. and discard data
-        - [DONE] Take timestamp of start and end times, check against spotify-given length
-    [WONTFIX] - It's impossible to notice song when song ends if looping only 1 song in Spotify.
-    [FIXME] - There is some timing delay when track changes in spotify. Spotify emits 6 signals when this happens.
-            Using `dbus-monitor "type='signal',sender='org.mpris.MediaPlayer2.spotify'" --profile`
+- Make music beats match with a certain frame in a video loop
+    - Possible only on tracks with pre-recorded beat locations
+    - Required changes:
+        - Track tempo database should also have beat positions
+            - Add this to the data sent by Rhythmextractor and save in DB
+        - Get track change signal from music player with reliable latency
+            - Using libdbus directly may help, since dbus-monitor gets signals with semi-reliable latency
+            - Spotify emits a few (6 usually) signals when the track changes. Using data from `dbus-monitor "type='signal',sender='org.mpris.MediaPlayer2.spotify'" --profile`
             it can be calculated that timing difference between the last of these 6 signals and the first when song changes
-            deviates only ~0.1sec from spotify's reported song length. This should be explored if accurate beat hits are wanted.
-            If accuracy is wanted, compare time inside the program to the one given by dbus-monitor.
-
-Milestone 2: Create new audio data handler for whole song
-[NOT STARTED]
-- Do some (minor) modifications for the current class
-- Create another instance of the class in audiodevice.cpp / h
-    - [NOTE] how to handle song change?
-
-Milestone 3: Calculate the beats for the whole song using rhythmextractor
-[NOT STARTED]
-- Differentiate somehow the short analysis and the whole song
-
-Milestone 4: Create a database of beat timestamps when listening music on spotify
-[NOT STARTED]
-- Database has the following data:
-    - Spotify trackid (unique)
-    - Array of timestamps for beats
-- A CSV file should work at first
-    - [OPTIONAL]: use real database
-
-Milestone 5: Adjust video loop speed according to database data
-[NOT STARTED]
-    - Record timestamp when the song changed
-    - Detect if the song is found in the database
-    - If song is in database, use the data to calculate video speed during the song
+            deviates only ~0.1sec from spotify's reported song length. Needs some more testing though.
+        - Update tempo to OpenGLWidget for each loop
+            - Use timestamps from song change and inside the widget to match beats
+- Improve OpenGLWidget
+    - Currently the widget renders textures on a surface which covers the widget/screen
+    - Create test implementation where rendering textures on 3D model
+    - Add mode where there's only 1 picture but zoom it in/out along with music tempo
+        - Should be easy-ish with shaders
+- Improve song info database
+    - Update data if Rhythmextractor's confidence is better than what is in DB
+    - Add "delete data" button to GUI. Pressing it deletes the current song's (incorrect) data from DB.
+- Fix running the program on Wayland
+    - fix with Qt6 update when qtwayland should be in a better shape.
+- Do something to gui.h/cpp. It's too big and messy.

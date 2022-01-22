@@ -4,6 +4,9 @@
     "confidence_threshold": 3,
     "filter_double": false,
     "limit_tempo": false,
+    "pa_application_name": "Spotify",
+    "pa_ignore_applications": [
+    ],
     "screen": 0,
     "show_tempo_controls": false,
     "start_as_fullscreen": false,

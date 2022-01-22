@@ -1,15 +1,15 @@
-#ifndef DBUSWATCHER_H
-#define DBUSWATCHER_H
+#ifndef SPOTIFYWATCHER_H
+#define SPOTIFYWATCHER_H
 
 #include <QtCore>
 #include <QtDBus>
 
-class DBusWatcher : public QObject
+class SpotifyWatcher : public QObject
 {
     Q_OBJECT
 public:
-    DBusWatcher();
-    ~DBusWatcher();
+    SpotifyWatcher();
+    ~SpotifyWatcher();
 
 public slots:
     void propertiesChanged(QString interface, QMap<QString, QVariant> signalData, QStringList l);

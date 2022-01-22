@@ -225,6 +225,8 @@ MainWindow::MainWindow(QCommandLineParser *parser) : m_parser(parser)
     connect(m_keySpacebar, &QShortcut::activated, this, &MainWindow::toggleManualTempo);
 
 
+
+
     /// Non-UI initializations
 
     // Rhythm data calculation
@@ -245,23 +247,35 @@ MainWindow::MainWindow(QCommandLineParser *parser) : m_parser(parser)
     connect(m_audio, &AudioDevice::deviceChanged, this, &MainWindow::invalidateTrackData);
 
     // Get data from Spotify through D-Bus
-    m_dbusWatcher = new DBusWatcher;
-    connect(m_dbusWatcher, &DBusWatcher::trackChanged, this, &MainWindow::updateTrackInfo);  // track changed
-    connect(m_dbusWatcher, &DBusWatcher::invalidateData, this, &MainWindow::invalidateTrackData);
+    m_spotifyWatcher = new SpotifyWatcher;
+    connect(m_spotifyWatcher, &SpotifyWatcher::trackChanged, this, &MainWindow::updateTrackInfo);
+    connect(m_spotifyWatcher, &SpotifyWatcher::invalidateData, this, &MainWindow::invalidateTrackData);
 
-    // Get data after we get signal from Spotify that is has changed track
+    // Get audio data after we get signal from Spotify that is has changed track
     connect(this, &MainWindow::trackCalculationNeeded, m_audio, &AudioDevice::emitAndClearSongBuffer);
 
     // Save track tempo data to a database
     bool saveTrackData = !parser->isSet(QCommandLineOption("n"));
     m_trackDBManager = new DBManager(saveTrackData);
 
-
+    // Get data from PulseAudio server and invalidate if there are unwanted programs also playing audio
+    m_pulseaudioWatcher = new PulseaudioWatcher(m_pa_targetApplication, m_pa_ignoreApplications);
+    m_pulseaudioWatcher->startPolling(1000);
+    connect(m_pulseaudioWatcher, &PulseaudioWatcher::invalidateData, this, &MainWindow::invalidateTrackData);
 
     this->show();
     if (m_startAsFullScreen) {
         setVideoFullScreen();
     }
+}
+
+MainWindow::~MainWindow()
+{
+    delete m_pulseaudioWatcher;
+    delete m_trackDBManager;
+    delete m_spotifyWatcher;
+
+    delete m_graphicsWidget;
 }
 
 void MainWindow::updateTempo()
@@ -576,6 +590,18 @@ void MainWindow::readSettings()
         m_tempoMultiplier = 4.0;
     }
 
+    m_pa_targetApplication = "";
+    if (!values.value("pa_application_name").isUndefined()) {
+        m_pa_targetApplication = values["pa_application_name"].toString();
+    }
+
+    if (!values.value("pa_ignore_applications").isUndefined()) {
+        QJsonArray ignoreApps = values["pa_ignore_applications"].toArray();
+        for (auto item : ignoreApps) {
+            m_pa_ignoreApplications.push_back(item.toString());
+        }
+    }
+
 
     qDebug("Starting with settings:");
     qDebug("  audo_device: %s", qPrintable(m_device));
@@ -614,6 +640,8 @@ void MainWindow::saveSettings()
     settingsData["video_name"] = m_loopName;
     settingsData["confidence_threshold"] = m_thresholdLevel;
     settingsData["tempo_multiplier"] = m_tempoMultiplier;
+    settingsData["pa_application_name"] = m_pa_targetApplication;
+    settingsData["pa_ignore_applications"] = QJsonArray::fromStringList(m_pa_ignoreApplications);   
 
     qDebug("Saving settings:");
     qDebug("  audio_device: %s", qPrintable(m_audio->getCurrentDevice()));
@@ -628,6 +656,8 @@ void MainWindow::saveSettings()
     qDebug("  video_name: %s", qPrintable(m_loopName));
     qDebug("  confidence_threshold %f", m_thresholdLevel);
     qDebug("  tempo_multiplier: %f", m_tempoMultiplier);
+    qDebug("  pa_application_name: %s", qPrintable(m_pa_targetApplication));
+    qDebug() << "  pa_ignore_applications:" << m_pa_ignoreApplications;
 
     saveFile.write(QJsonDocument(settingsData).toJson());
 }
@@ -784,8 +814,6 @@ void MainWindow::fixSize()
 
 void MainWindow::closeEvent(QCloseEvent *e)
 {
-    //TODO: instead of deleting, try reattaching the m_graphicsWidget so it gets deleted automatically
-    delete m_graphicsWidget;
     saveSettings();
 }
 
