@@ -17,9 +17,8 @@ TODO:
     - Create test implementation where rendering textures on 3D model
     - Add mode where there's only 1 picture but zoom it in/out along with music tempo
         - Should be easy-ish with shaders
-- Improve song info database
-    - Update data if Rhythmextractor's confidence is better than what is in DB
-    - Add "delete data" button to GUI. Pressing it deletes the current song's (incorrect) data from DB.
 - Fix running the program on Wayland
     - fix with Qt6 update when qtwayland should be in a better shape.
 - Do something to gui.h/cpp. It's too big and messy.
+- Make building easier
+- GIF format for loops

@@ -19,6 +19,7 @@ public:
 
 public slots:
     void writeBPM(MyTypes::TrackData& data);
+    void deleteTrack(QString trackId);
 
 private:
     void readBPMValues();

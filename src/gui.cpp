@@ -40,7 +40,7 @@ MainWindow::MainWindow(QCommandLineParser *parser) : m_parser(parser)
     // Layout for setting tempo
     m_tempoGroup = new QGroupBox(tr("Tempo"));
 
-    m_lockCheckBox = new QCheckBox(tr("Manual tempo"));
+    m_lockCheckBox = new QCheckBox(tr("Manual tempo"), this);
     connect(m_lockCheckBox, &QPushButton::clicked, this, &MainWindow::updateLockCheckBox);
 
     m_setBpmLine = new QLineEdit(QString::number(m_tempo, 'f', 1));
@@ -56,9 +56,15 @@ MainWindow::MainWindow(QCommandLineParser *parser) : m_parser(parser)
     tempoLine->addWidget(m_setBpmLine);
     tempoLine->addWidget(bpmLabel);
 
-    m_filterCheckBox = new QCheckBox(tr("Filter half/double tempo"));
-    m_filterCheckBox->setChecked(m_filterDouble);
-    connect(m_filterCheckBox, &QPushButton::clicked, this, &MainWindow::updateFilterCheckBox);
+    // FIXME: currently not added to UI, but deleting this causes segfault on program exit
+    //m_filterCheckBox = new QCheckBox(tr("Filter half/double tempo"));
+    //m_filterCheckBox->setChecked(m_filterDouble);
+    //connect(m_filterCheckBox, &QPushButton::clicked, this, &MainWindow::updateFilterCheckBox);
+    
+
+    QPushButton *m_wrongTempoButton = new QPushButton(tr("Wrong tempo"));
+    connect(m_wrongTempoButton, &QPushButton::clicked, this, &MainWindow::removeCurrentTrack);
+
 
     QLabel *confidenceLabel = new QLabel(tr("BPM confidence"));
     m_confidenceSlider = new QSlider();
@@ -82,7 +88,8 @@ MainWindow::MainWindow(QCommandLineParser *parser) : m_parser(parser)
     tempoLayout->addLayout(tempoLine);
     tempoLayout->addWidget(m_lockCheckBox);
     //tempoLayout->addStretch(1);
-    tempoLayout->addWidget(m_filterCheckBox);
+    //tempoLayout->addWidget(m_filterCheckBox);
+    tempoLayout->addWidget(m_wrongTempoButton);
     tempoLayout->addWidget(confidenceLabel);
     tempoLayout->addWidget(m_confidenceSlider);
     tempoLayout->addWidget(thresholdLabel);
@@ -520,11 +527,11 @@ void MainWindow::readSettings()
     }
 
     // Enable double/half tempo filtering
+    //m_filterDouble = false;
+    //if (!values.value("filter_double").isUndefined()) {
+    //    m_filterDouble = values["filter_double"].toBool();
+    //}
     m_filterDouble = false;
-    if (!values.value("filter_double").isUndefined()) {
-        m_filterDouble = values["filter_double"].toBool();
-    }
-
 
     // Tempo lower limit
     m_tempoLowerLimit = 60.0;
@@ -623,7 +630,7 @@ void MainWindow::readSettings()
     qDebug("Starting with settings:");
     qDebug("  audo_device: %s", qPrintable(m_device));
     qDebug("  limit_tempo: %d", m_limitTempo);
-    qDebug("  filter_double: %d", m_filterDouble);
+    //qDebug("  filter_double: %d", m_filterDouble);
     qDebug("  tempo_lower_limit: %f", m_tempoLowerLimit);
     qDebug("  tempo_upper_limit: %f", m_tempoUpperLimit);
     qDebug("  screen: %d", m_screenNumber);
@@ -647,7 +654,7 @@ void MainWindow::saveSettings()
     QJsonObject settingsData;
     settingsData["audio_device"] = m_audio->getCurrentDevice();
     settingsData["limit_tempo"] = m_limitCheckBox->isChecked();
-    settingsData["filter_double"] = m_filterCheckBox->isChecked();
+    //settingsData["filter_double"] = m_filterCheckBox->isChecked();
     settingsData["tempo_lower_limit"] = m_tempoLowerLimit;
     settingsData["tempo_upper_limit"] = m_tempoUpperLimit;
     settingsData["screen"] = m_screenSelect->currentIndex();
@@ -663,7 +670,7 @@ void MainWindow::saveSettings()
     qDebug("Saving settings:");
     qDebug("  audio_device: %s", qPrintable(m_audio->getCurrentDevice()));
     qDebug("  limit_tempo: %d", m_limitCheckBox->isChecked());
-    qDebug("  filter_double: %d", m_filterCheckBox->isChecked());
+    //qDebug("  filter_double: %d", m_filterCheckBox->isChecked());
     qDebug("  tempo_lower_limit: %f", m_tempoLowerLimit);
     qDebug("  tempo_upper_limit: %f", m_tempoUpperLimit);
     qDebug("  screen: %d", m_screenSelect->currentIndex());
@@ -911,6 +918,8 @@ void MainWindow::updateTrackInfo(QString oldTrackId, QString oldArtist, QString 
     m_trackData.artist = oldArtist;
     m_trackData.title = oldTitle;
 
+    m_currentTrackId = newTrackId;
+
     // if tempo data exists for the track which started playing
     float newBpm = m_trackDBManager->getBPM(newTrackId);
     if (newBpm > 0.0) {
@@ -952,4 +961,9 @@ void MainWindow::invalidateTrackData(QString reason)
 {
     m_invalidTrackData = true;
     m_trackDataInvalidationReasons.append(reason); 
+}
+
+void MainWindow::removeCurrentTrack()
+{
+    m_trackDBManager->deleteTrack(m_currentTrackId);
 }

@@ -2,9 +2,8 @@
     "add_reversed_frames": true,
     "audio_device": "alsa_output.pci-0000_00_1f.3.analog-stereo.monitor",
     "confidence_threshold": 3,
-    "filter_double": false,
     "limit_tempo": false,
-    "pa_application_name": "Spotify",
+    "pa_application_name": "spotify",
     "pa_ignore_applications": [
     ],
     "screen": 0,
@@ -12,6 +11,6 @@
     "start_as_fullscreen": false,
     "tempo_lower_limit": 60,
     "tempo_multiplier": 1,
-    "tempo_upper_limit": 130,
+    "tempo_upper_limit": 120,
     "video_name": "gandalf"
 }

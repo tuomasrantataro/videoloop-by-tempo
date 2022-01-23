@@ -12,6 +12,7 @@
 #include <QGroupBox>
 #include <QShortcut>
 #include <QCloseEvent>
+#include <QPushButton>
 #include <vector>
 #include <list>
 #include <QCommandLineParser>
@@ -77,6 +78,8 @@ private slots:
     void receiveBPMCalculationResult(const TempoData& data, MyTypes::AudioBufferType type);
 
     void invalidateTrackData(QString reason);
+
+    void removeCurrentTrack();
 
 private:
     void setTempoLimited();
@@ -179,6 +182,10 @@ private:
     QStringList m_pa_ignoreApplications;
 
     QStringList m_trackDataInvalidationReasons;
+
+    QPushButton *m_wrongTempoButton;
+
+    QString m_currentTrackId;
 
 signals:
     void trackCalculationNeeded();

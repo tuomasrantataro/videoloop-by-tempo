@@ -4,6 +4,8 @@
 #include <QtCore>
 #include <QtDBus>
 
+#include "types.h"
+
 class SpotifyWatcher : public QObject
 {
     Q_OBJECT

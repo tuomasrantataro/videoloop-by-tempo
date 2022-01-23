@@ -136,3 +136,17 @@ void DBManager::readBPMValues()
         m_bpmData.insert(key, bpm);
     }
 }
+
+void DBManager::deleteTrack(QString trackId)
+{
+    QSqlQuery query;
+    query.prepare("DELETE FROM trackdata WHERE trackid=:trackid;");
+    query.bindValue(":trackid", trackId);
+
+    bool ret = query.exec();
+
+    if (!ret) {
+        qWarning("Error executing data deletion query:\n\t%s", qPrintable(query.lastQuery()));
+        qWarning("Error:\n\t%s", qPrintable(query.lastError().text()));
+    }
+}
