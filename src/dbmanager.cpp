@@ -53,22 +53,54 @@ void DBManager::writeBPM(MyTypes::TrackData& data)
     }
 
     QSqlQuery query;
-    QString track = data.trackId;
-    query.prepare("SELECT * FROM trackdata WHERE EXISTS ( SELECT trackid FROM trackdata WHERE trackid=:trackid );");
-    query.bindValue(":trackid", track);
+    query.prepare("SELECT confidence FROM trackdata WHERE trackid=:trackid;");
+    query.bindValue(":trackid", data.trackId);
     query.exec();
 
     query.next();
 
-    // Do not overwrite already existing track data
+    bool update = false;
     if (query.isValid()) {
-        return;
+        float dbConfidence = query.value(0).toFloat();
+
+        if (data.confidence < dbConfidence) {
+            qDebug() << "  Data with better confidence exists";
+            return;
+        }
+        else {
+            update = true;
+        }
     }
 
     query.clear();
 
-    query.prepare("INSERT INTO trackdata (trackid, bpm, confidence, peak1, weight1, spread1, peak2, weight2, spread2, artist, title) "
+    qDebug("Adding tempo data to database:\n"
+            "  %s | %.1f bpm | confidence: %.2f\n  %s - %s",
+            qPrintable(data.trackId),
+            data.BPM,
+            data.confidence,
+            qPrintable(data.artist),
+            qPrintable(data.title));
+
+    if (!update) {
+        query.prepare("INSERT INTO trackdata (trackid, bpm, confidence, peak1, weight1, spread1, peak2, weight2, spread2, artist, title) "
                "VALUES (:trackid, :bpm, :confidence, :peak1, :weight1, :spread1, :peak2, :weight2, :spread2, :artist, :title);");
+    }
+    else {
+        query.prepare("UPDATE trackdata SET "
+                "trackid=:trackid, "
+                "bpm=:bpm, "
+                "confidence=:confidence, "
+                "peak1=:peak1, "
+                "weight1=:weight1, "
+                "spread1=:spread1, "
+                "peak2=:peak2, "
+                "weight2=:weight2, "
+                "spread2=:spread2, "
+                "artist=:artist, "
+                "title=:title "
+                "WHERE trackid=:trackid;");
+    }
     query.bindValue(":trackid", data.trackId);
     query.bindValue(":bpm", data.BPM);
     query.bindValue(":confidence", data.confidence);

@@ -886,15 +886,12 @@ int MainWindow::checkDirectories()
 
 void MainWindow::saveTrackData()
 {
+    if (m_trackData.confidence < 0.5) {
+        invalidateTrackData("Too low tempo analysis confidence");
+    }
+    
     if (!m_invalidTrackData && QString("").compare(m_trackData.trackId)) {
         m_trackDBManager->writeBPM(m_trackData);
-        qDebug("Tempo data added to database if not already found:\n"
-               "  %s | %.1f bpm | confidence: %.2f\n\t%s - %s",
-               qPrintable(m_trackData.trackId),
-               m_trackData.BPM,
-               m_trackData.confidence,
-               qPrintable(m_trackData.artist),
-               qPrintable(m_trackData.title));
     }
     else {
         m_trackDataInvalidationReasons.removeDuplicates();
