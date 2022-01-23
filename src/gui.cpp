@@ -244,7 +244,7 @@ MainWindow::MainWindow(QCommandLineParser *parser) : m_parser(parser)
         m_audioSelect->addItem(*it);
     }
     connect(m_audioSelect, &QComboBox::currentTextChanged, m_audio, &AudioDevice::changeAudioInput);
-    connect(m_audio, &AudioDevice::deviceChanged, this, &MainWindow::invalidateTrackData);
+    connect(m_audio, &AudioDevice::invalidateData, this, &MainWindow::invalidateTrackData);
 
     // Get data from Spotify through D-Bus
     m_spotifyWatcher = new SpotifyWatcher;
@@ -888,8 +888,8 @@ void MainWindow::saveTrackData()
 {
     if (!m_invalidTrackData && QString("").compare(m_trackData.trackId)) {
         m_trackDBManager->writeBPM(m_trackData);
-        qDebug("Tempo data added to database if not already found:\n\t"
-               "%s | %.1f bpm | confidence: %.2f\n\t%s - %s",
+        qDebug("Tempo data added to database if not already found:\n"
+               "  %s | %.1f bpm | confidence: %.2f\n\t%s - %s",
                qPrintable(m_trackData.trackId),
                m_trackData.BPM,
                m_trackData.confidence,
@@ -897,7 +897,12 @@ void MainWindow::saveTrackData()
                qPrintable(m_trackData.title));
     }
     else {
-        qDebug("Track data not saved to track database.");
+        m_trackDataInvalidationReasons.removeDuplicates();
+        qDebug("Track data not saved. Reasons during last track:");
+        for (auto item : m_trackDataInvalidationReasons) {
+            qDebug() << " " << qPrintable(item);
+        }
+        m_trackDataInvalidationReasons.clear();
     }
     // Reset track data invalidation for the next track
     m_invalidTrackData = false;
@@ -946,7 +951,8 @@ void MainWindow::receiveBPMCalculationResult(const TempoData& data, MyTypes::Aud
     }
 }
 
-void MainWindow::invalidateTrackData()
+void MainWindow::invalidateTrackData(QString reason)
 {
     m_invalidTrackData = true;
+    m_trackDataInvalidationReasons.append(reason); 
 }

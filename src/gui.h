@@ -76,7 +76,7 @@ private slots:
 
     void receiveBPMCalculationResult(const TempoData& data, MyTypes::AudioBufferType type);
 
-    void invalidateTrackData();
+    void invalidateTrackData(QString reason);
 
 private:
     void setTempoLimited();
@@ -177,6 +177,8 @@ private:
     
     QString m_pa_targetApplication;
     QStringList m_pa_ignoreApplications;
+
+    QStringList m_trackDataInvalidationReasons;
 
 signals:
     void trackCalculationNeeded();

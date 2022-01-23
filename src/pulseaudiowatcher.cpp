@@ -32,7 +32,7 @@ void PulseaudioWatcher::checkPulseAudioData()
     pa_sinkinput_list.inputs = NULL;
 
     if (pa_get_clients(&pa_sinkinput_list, &pa_client_list) < 0) {
-        qDebug() << "Failed to get sink inputs and/or their clients";
+        qWarning() << "Failed to get sink inputs and/or their clients";
         free(pa_client_list.clients);
         free(pa_sinkinput_list.inputs);
         return;
@@ -65,8 +65,14 @@ void PulseaudioWatcher::checkPulseAudioData()
 
     // If there is other software outputting audio or the wanted application isn't,
     // send signal to indicate that the audio data is not what is wanted
-    if (audioOutputers.size() != 1 || !audioOutputers.contains(m_targetProgram)) {
-        emit invalidateData();
+    if (audioOutputers.size() != 1) {
+        QString error = QString::number(audioOutputers.size()) + " PulseAudio sink-inputs found: ";
+        error.append(audioOutputers.join(", "));
+        emit invalidateData(error);
+    }
+    else if (!audioOutputers.contains(m_targetProgram)) {
+        QString error = "Target program " + m_targetProgram + " not found in PulseAudio sink-inputs.";
+        emit invalidateData(error);
     }
 
 

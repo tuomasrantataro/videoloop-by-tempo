@@ -16,7 +16,7 @@ public slots:
 
 signals:
     void trackChanged(QString oldTrackId, QString oldArtist, QString oldTitle, QString newTrackId);
-    void invalidateData();
+    void invalidateData(QString reason);
 
 private:
     QDBusConnection m_bus = QDBusConnection::sessionBus();

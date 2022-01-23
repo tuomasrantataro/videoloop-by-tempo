@@ -75,8 +75,7 @@ void SpotifyWatcher::propertiesChanged(QString interface, QMap<QString, QVariant
 
     QVariant playbackStatus = signalData["PlaybackStatus"];
     if (!QString("Paused").compare(playbackStatus.toString())) {
-        // Invalidate song audio data if it was paused
-        emit invalidateData();
+        emit invalidateData("Song playback was paused in Spotify.");
     }
 
     QVariant contents = signalData["Metadata"];
@@ -120,7 +119,8 @@ void SpotifyWatcher::propertiesChanged(QString interface, QMap<QString, QVariant
         qint64 diff = abs((long)trackLength - (long)m_spotifyLength);
 
         if (diff > 1500) {
-            emit invalidateData();
+            QString error = "Audio data length differs too much from song length reported by Spotify";
+            emit invalidateData(error);
         }
 
         m_spotifyLength = newMap["mpris:length"].toULongLong()/1000;   // change from usec to msec

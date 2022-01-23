@@ -86,7 +86,7 @@ void AudioDevice::changeAudioInput(QString deviceName)
     m_wholeTrackData->clear();
 
     setupDevice(deviceName);
-    emit deviceChanged();
+    emit invalidateData("Audio device changed");
 }
 
 void AudioDevice::emitAndClearSongBuffer()

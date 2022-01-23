@@ -44,7 +44,7 @@ public:
     void stopPolling();
 
 signals:
-    void invalidateData();
+    void invalidateData(QString reason);
 
 private:
     QString m_targetProgram;

@@ -42,7 +42,8 @@ public slots:
 signals:
     void dataReady(const AudioData &data, const AudioBufferType type = MyTypes::rolling);
     void songDataReady(const AudioData &data, const AudioBufferType type = MyTypes::track);
-    void deviceChanged();
+    void invalidateData(QString reason);
+
 
 private:
     void setupDevice(QString deviceName);
