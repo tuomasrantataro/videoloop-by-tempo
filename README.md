@@ -8,7 +8,7 @@ This program has been tested to work on Ubuntu 20.04, but likely works on any mo
 The build is automated with CMake. This includes cloning Essentia's git repo and building it.
 
 ### Dependencies
-Install development packages with `apt` or some other package manager: `xargs sudo apt install <packages.list`
+Install development packages with `apt` or some other package manager: `xargs sudo apt install -y <packages.list`
 - General tools:
     - `build-essential curl cmake`
 - For Qt:

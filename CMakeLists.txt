@@ -24,7 +24,9 @@ include(ExternalProject)
 
 ExternalProject_add(essentia
     GIT_REPOSITORY "https://github.com/MTG/essentia.git"
-    GIT_TAG "master"
+    # Use the newest commit when this change was made to keep from updating unnecessarily.
+    # Stable release is really old, and betas also old. This seems to work.
+    GIT_TAG "ee019f767570bae9946c6a58ea7231569be8a117"
     GIT_SHALLOW true
     GIT_PROGRESS true
     BINARY_DIR ${CMAKE_CURRENT_SOURCE_DIR}/3rd_party/essentia
@@ -84,5 +86,4 @@ install(TARGETS videoloop-by-tempo DESTINATION "${CMAKE_CURRENT_SOURCE_DIR}/rele
 install(DIRECTORY "${PROJECT_SOURCE_DIR}/frames/" DESTINATION "${CMAKE_CURRENT_SOURCE_DIR}/release/frames/")
 install(FILES "${PROJECT_SOURCE_DIR}/LICENSE" DESTINATION "${PROJECT_SOURCE_DIR}/release/")
 install(FILES "${PROJECT_SOURCE_DIR}/README.md" DESTINATION "${PROJECT_SOURCE_DIR}/release/")
-install(FILES "${PROJECT_SOURCE_DIR}/install.sh" DESTINATION "${PROJECT_SOURCE_DIR}/release/")
 install(FILES "${PROJECT_SOURCE_DIR}/icon_256px.png" DESTINATION "${PROJECT_SOURCE_DIR}/release/")
