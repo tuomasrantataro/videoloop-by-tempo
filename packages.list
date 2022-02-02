@@ -1,0 +1,12 @@
+build-essential
+curl
+cmake
+qtbase5-dev
+qtmultimedia5-dev
+libpulse-dev
+libfftw3-dev
+libeigen3-dev
+libqt5multimedia5
+libqt5multimedia5-plugins
+libqt5sql5-sqlite
+libqt5widgets5

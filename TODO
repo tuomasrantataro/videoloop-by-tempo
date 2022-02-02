@@ -20,5 +20,4 @@ TODO:
 - Fix running the program on Wayland
     - fix with Qt6 update when qtwayland should be in a better shape.
 - Do something to gui.h/cpp. It's too big and messy.
-- Make building easier
 - GIF format for loops

@@ -17,17 +17,42 @@ add_compile_definitions(
 
 find_package(Qt5 COMPONENTS Widgets Multimedia DBus Sql REQUIRED)
 find_package(PulseAudio REQUIRED)
+# For Essentia
+find_package(Eigen3 REQUIRED)
 
-# Import essentia
-add_library(essentia STATIC IMPORTED)
-set_target_properties(essentia PROPERTIES
-    IMPORTED_LOCATION "${CMAKE_CURRENT_SOURCE_DIR}/external/essentia/build/src/libessentia.a")
-target_link_directories(essentia 
-    INTERFACE   "${CMAKE_CURRENT_SOURCE_DIR}/external/essentia/packaging/debian_3rdparty/lib")
-target_link_libraries(essentia
-    INTERFACE   libfftw3f.a)
+include(ExternalProject)
+
+ExternalProject_add(essentia
+    GIT_REPOSITORY "https://github.com/MTG/essentia.git"
+    GIT_TAG "master"
+    GIT_SHALLOW true
+    GIT_PROGRESS true
+    BINARY_DIR ${CMAKE_CURRENT_SOURCE_DIR}/3rd_party/essentia
+    DOWNLOAD_DIR ${CMAKE_CURRENT_SOURCE_DIR}/3rd_party/essentia
+    SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/3rd_party/essentia
+    CONFIGURE_COMMAND ./waf configure --lightweight=fftw --static-dependencies --build-static --prefix=./
+    BUILD_COMMAND ./waf
+    INSTALL_COMMAND ./waf install
+)
+
+ExternalProject_Add_Step(essentia
+    add_run_permission_waf
+    COMMAND chmod +x ./waf
+    COMMENT "Setting permission to execute ./waf for building essentia"
+    DEPENDEES download
+    DEPENDERS configure
+    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/3rd_party/essentia
+)
+
+SET(ESSENTIA_DIR ${CMAKE_CURRENT_SOURCE_DIR}/3rd_party/essentia)
+
+include_directories(${ESSENTIA_DIR}/include)
+link_directories(${ESSENTIA_DIR}/lib)
 
 add_executable(videoloop-by-tempo)
+
+add_dependencies(videoloop-by-tempo essentia)
+
 target_sources(videoloop-by-tempo
     PRIVATE     src/spotifywatcher.cpp
                 src/pulseaudiowatcher.cpp
@@ -39,16 +64,20 @@ target_sources(videoloop-by-tempo
                 src/main.cpp
 )
 target_compile_options(videoloop-by-tempo PRIVATE -Wall)
-target_include_directories(videoloop-by-tempo 
-    PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/external/essentia/packaging/debian_3rdparty/include/eigen3"
-            "${CMAKE_CURRENT_SOURCE_DIR}/external/essentia/src")
+
+target_link_directories(videoloop-by-tempo
+    INTERFACE   ${ESSENTIA_DIR}/lib
+)
+
 target_link_libraries(videoloop-by-tempo
     PRIVATE     Qt5::Widgets
                 Qt5::Multimedia
                 Qt5::DBus
                 Qt5::Sql
-                essentia
-                pulse)
+                pulse
+                Eigen3::Eigen
+                libessentia.a
+                libfftw3f.a)
 
 # Create a folder which has only the relevant files for using the program
 install(TARGETS videoloop-by-tempo DESTINATION "${CMAKE_CURRENT_SOURCE_DIR}/release")
