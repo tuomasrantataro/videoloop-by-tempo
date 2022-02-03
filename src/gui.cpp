@@ -576,13 +576,6 @@ void MainWindow::readSettings()
     }
 
 
-    // Toggle adding frames reversed to the video loop
-    m_addReversedFrames = false;
-    if (!values.value("add_reversed_frames").isUndefined()) {
-        m_addReversedFrames = values["add_reversed_frames"].toBool();
-    }
-
-
     // Default video
     m_loopName = "";
     if (!values.value("video_name").isUndefined()) {
@@ -602,18 +595,7 @@ void MainWindow::readSettings()
     }
 
 
-    // Tempo multiplier
-    m_tempoMultiplier = 1.0;
-    if (!values.value("tempo_multiplier").isUndefined()) {
-        m_tempoMultiplier = values["tempo_multiplier"].toDouble();
-    }
-    // note: accurate comparisons work because these are powers of 2.
-    if (m_tempoMultiplier < 0.25) {
-        m_tempoMultiplier = 0.25;
-    } else if (m_tempoMultiplier > 4.0) {
-        m_tempoMultiplier = 4.0;
-    }
-
+    // Player application in use
     m_pa_targetApplication = "";
     if (!values.value("pa_application_name").isUndefined()) {
         m_pa_targetApplication = values["pa_application_name"].toString();
@@ -627,6 +609,33 @@ void MainWindow::readSettings()
     }
 
 
+    // Setttings for individual video loops
+    QJsonObject loopSettings;
+    if (!values.value("loop_settings").isUndefined()) {
+        loopSettings = values["loop_settings"].toObject();
+    }
+
+    m_loopSettings = loopSettings;
+
+    // defaults in case data is not found
+    m_tempoMultiplier = 1.0;
+    m_addReversedFrames = false;
+    if (m_loopName != "" && m_loopSettings.keys().contains(m_loopName)) {
+        QJsonObject loopData = m_loopSettings[m_loopName].toObject();
+        if (!loopData.value("add_reversed_frames").isUndefined()) {
+            m_addReversedFrames = loopData["add_reversed_frames"].toBool();
+        }
+        if (!loopData.value("tempo_multiplier").isUndefined()) {
+            m_tempoMultiplier = loopData["tempo_multiplier"].toDouble();
+        }
+        // note: accurate comparisons work because these are powers of 2.
+        if (m_tempoMultiplier < 0.25) {
+            m_tempoMultiplier = 0.25;
+        } else if (m_tempoMultiplier > 4.0) {
+            m_tempoMultiplier = 4.0;
+        }
+    }
+
     qDebug("Starting with settings:");
     qDebug("  audo_device: %s", qPrintable(m_device));
     qDebug("  limit_tempo: %d", m_limitTempo);
@@ -636,10 +645,8 @@ void MainWindow::readSettings()
     qDebug("  screen: %d", m_screenNumber);
     qDebug("  start_as_fullscreen: %d", m_startAsFullScreen);
     qDebug("  show_tempo_controls: %d", m_showTempoControls);
-    qDebug("  add_reversed_frames: %d", m_addReversedFrames);
     qDebug("  video_name: %s", qPrintable(m_loopName));
     qDebug("  confidence_threshold: %f", m_thresholdLevel);
-    qDebug("  tempo_multiplier: %f", m_tempoMultiplier);
 }
 
 void MainWindow::saveSettings()
@@ -660,12 +667,11 @@ void MainWindow::saveSettings()
     settingsData["screen"] = m_screenSelect->currentIndex();
     settingsData["start_as_fullscreen"] = m_startAsFullScreen;
     settingsData["show_tempo_controls"] = m_showTempoControls;
-    settingsData["add_reversed_frames"] = m_addReversedFrames;
     settingsData["video_name"] = m_loopName;
     settingsData["confidence_threshold"] = m_thresholdLevel;
-    settingsData["tempo_multiplier"] = m_tempoMultiplier;
     settingsData["pa_application_name"] = m_pa_targetApplication;
-    settingsData["pa_ignore_applications"] = QJsonArray::fromStringList(m_pa_ignoreApplications);   
+    settingsData["pa_ignore_applications"] = QJsonArray::fromStringList(m_pa_ignoreApplications);
+    settingsData["loop_settings"] = m_loopSettings;   
 
     qDebug("Saving settings:");
     qDebug("  audio_device: %s", qPrintable(m_audio->getCurrentDevice()));
@@ -676,77 +682,43 @@ void MainWindow::saveSettings()
     qDebug("  screen: %d", m_screenSelect->currentIndex());
     qDebug("  start_as_fullscreen: %d", m_startAsFullScreen);
     qDebug("  show_tempo_controls: %d", m_showTempoControls);
-    qDebug("  add_reversed_frames: %d", m_addReversedFrames);
     qDebug("  video_name: %s", qPrintable(m_loopName));
     qDebug("  confidence_threshold %f", m_thresholdLevel);
-    qDebug("  tempo_multiplier: %f", m_tempoMultiplier);
     qDebug("  pa_application_name: %s", qPrintable(m_pa_targetApplication));
     qDebug() << "  pa_ignore_applications:" << m_pa_ignoreApplications;
 
     saveFile.write(QJsonDocument(settingsData).toJson());
 }
 
-void MainWindow::readLoopSettings(QString loopName)
+bool MainWindow::getLoopAddReversedFrames(QString loopName)
 {
-    QJsonObject values;
-    QJsonDocument loadDoc;
+    QJsonObject loopData = m_loopSettings[loopName].toObject();
 
-    QString settingsFileName = "frames/" + loopName + "/" + "settings.JSON";
-    QFile loadFile(settingsFileName);
-
-    if (!loadFile.open(QIODevice::ReadOnly)) {
-        qWarning("Couldn't open loop settings.JSON. Using default settings.");
-    } else {
-        QString settingsData = loadFile.readAll();
-        loadDoc = QJsonDocument::fromJson(settingsData.toUtf8());
+    if (loopData.value("add_reversed_frames").isUndefined()) {
+        return false;
     }
-
-    if (loadFile.exists() && !loadDoc.isObject()) {
-        qWarning("Malformed loop settings.JSON file. Using default settings.");
-    } else {
-        values = loadDoc.object();
-    }
-
-    // Toggle adding frames reversed to the video loop
-    if (!values.value("add_reversed_frames").isUndefined()) {
-        m_addReversedFrames = values["add_reversed_frames"].toBool();
-    }
-    m_reverseFramesCheckBox->setChecked(m_addReversedFrames);
-    setAddReversedFrames();
-
-    // Tempo multiplier
-    if (!values.value("tempo_multiplier").isUndefined()) {
-        m_tempoMultiplier = values["tempo_multiplier"].toDouble();
-    }
-    // note: accurate comparisons work because these are powers of 2.
-    if (m_tempoMultiplier < 0.25) {
-        m_tempoMultiplier = 0.25;
-    } else if (m_tempoMultiplier > 4.0) {
-        m_tempoMultiplier = 4.0;
-    }
-    m_tempoMultiplierSlider->setValue(log2(m_tempoMultiplier));
-    m_tempoMultiplierLabel->setText("Tempo multiplier " + QString::number(m_tempoMultiplier, 'f', 2));
-
+    
+    return loopData["add_reversed_frames"].toBool();
 }
 
-void MainWindow::writeLoopSettings(QString loopName)
+double MainWindow::getLoopTempoMultiplier(QString loopName)
 {
-    //Write video-specific settings to its frame folder
-    QString settingsFileName = "frames/" + loopName + "/" + "settings.JSON";
+    QJsonObject loopData = m_loopSettings[loopName].toObject();
 
-    QFile saveFile(settingsFileName);
-
-    if (!saveFile.open(QIODevice::WriteOnly)) {
-        qWarning("Coudn't save settings. Is the folder write-protected?");
-        return;
+    if (loopData.value("tempo_multiplier").isUndefined()) {
+        return 1.0;
     }
+    
+    return loopData["tempo_multiplier"].toDouble();
+}
 
+void MainWindow::updateLoopSettings(QString loopName, bool addReversedFrames, float tempoMultiplier)
+{
     QJsonObject settingsData;
     settingsData["add_reversed_frames"] = m_addReversedFrames;
     settingsData["tempo_multiplier"] = m_tempoMultiplier;
 
-    saveFile.write(QJsonDocument(settingsData).toJson());
-
+    m_loopSettings[loopName] = settingsData;
 }
 
 void MainWindow::setVideoFullScreen()
@@ -760,7 +732,6 @@ void MainWindow::setVideoFullScreen()
         } else {
             m_layout->addWidget(m_audioGroup, 1);
             m_layout->removeWidget(m_loopSelect);
-            //m_videoLayout->addWidget(m_reverseFramesCheckBox, 2, 0, 1, 3);
             m_videoLayout->addWidget(m_loopSelect, 3, 1, 1, 2);
             m_videoGroup->setLayout(m_videoLayout);
             m_layout->addWidget(m_videoGroup, 1);
@@ -779,7 +750,6 @@ void MainWindow::setVideoFullScreen()
         } else {
             m_layout->removeWidget(m_audioGroup);
             m_layout->removeWidget(m_videoGroup);
-            //m_layout->addWidget(m_reverseFramesCheckBox);
             m_layout->addWidget(m_loopSelect);
             m_layout->invalidate();
             QTimer::singleShot(50, this, &MainWindow::fixSize);
@@ -824,10 +794,20 @@ void MainWindow::setAddReversedFrames()
 
 void MainWindow::setVideoLoop(QString loopName)
 {
-    writeLoopSettings(m_loopName);
+    // Save the settings used for the previous loop video
+    updateLoopSettings(m_loopName, m_addReversedFrames, m_tempoMultiplier);
+
     m_loopName = loopName;
     m_graphicsWidget->setFrameFolder(loopName);
-    readLoopSettings(m_loopName);
+
+    m_tempoMultiplier = getLoopTempoMultiplier(m_loopName);
+    m_tempoMultiplierSlider->setValue(log2(m_tempoMultiplier));
+    m_tempoMultiplierLabel->setText("Tempo multiplier " + QString::number(m_tempoMultiplier, 'f', 2));
+
+    m_addReversedFrames = getLoopAddReversedFrames(m_loopName);
+    m_reverseFramesCheckBox->setChecked(m_addReversedFrames);
+    setAddReversedFrames();
+
     updateTempo();
 }
 

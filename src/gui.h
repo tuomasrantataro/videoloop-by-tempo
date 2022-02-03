@@ -87,8 +87,12 @@ private:
     void updateUpperTempoLimit(float limit);
     void readSettings();
 
-    void readLoopSettings(QString loopName);
-    void writeLoopSettings(QString loopName);
+    bool getLoopAddReversedFrames(QString loopName);
+    double getLoopTempoMultiplier(QString loopName);
+
+    void updateLoopSettings(QString loopName, bool addReverserdFrames, float tempoMultiplier);
+
+    QJsonObject m_loopSettings;
 
     bool detectDoubleTempoJump(float newTempo);
 
@@ -141,7 +145,6 @@ private:
 
     QLabel *m_tempoMultiplierLabel;
     float m_tempoMultiplier;
-    float m_loopTempoMultiplier;
     QSlider *m_tempoMultiplierSlider;
 
     float m_tempoLowerLimit;
