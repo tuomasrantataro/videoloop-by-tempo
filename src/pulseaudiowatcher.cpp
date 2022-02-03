@@ -1,6 +1,15 @@
 
 #include "pulseaudiowatcher.h"
 
+#include <pulse/pulseaudio.h>
+
+// Callback forward declatations for PulseAudio C API use
+void pa_state_cb(pa_context *c, void *userdata);
+void pa_sinkinputlist_cb(pa_context *c, const pa_sink_input_info *l, int eol, void *userdata);
+void pa_clientlist_cb(pa_context *c, const pa_client_info *l, int eol, void *userdata);
+
+
+
 PulseaudioWatcher::PulseaudioWatcher(QString targetProgram, QStringList ignorePrograms) :
     m_targetProgram(targetProgram),
     m_ignorePrograms(ignorePrograms)
@@ -27,9 +36,9 @@ void PulseaudioWatcher::stopPolling()
 void PulseaudioWatcher::checkPulseAudioData()
 {
     pa_clientlist_c_t pa_client_list;
-    pa_client_list.clients = NULL;
+    pa_client_list.clients = NULL;      // Will be reallocated in pa_clientlist_cb
     pa_sinkinputlist_c_t pa_sinkinput_list;
-    pa_sinkinput_list.inputs = NULL;
+    pa_sinkinput_list.inputs = NULL;    // Will be reallocated in pa_sinkinputlist_cb
 
     if (pa_get_clients(&pa_sinkinput_list, &pa_client_list) < 0) {
         qWarning() << "Failed to get sink inputs and/or their clients";

@@ -2,7 +2,6 @@
 #define DBMANAGER_H
 
 #include <QtCore>
-#include <QtSql>
 
 #include "types.h"
 

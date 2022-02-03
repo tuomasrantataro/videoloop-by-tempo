@@ -1,5 +1,8 @@
 #include "rhythmextractor.h"
 
+#include <essentia/pool.h>
+#include <essentia/algorithmfactory.h>
+
 RhythmExtractor::RhythmExtractor(QObject *parent) : m_parent(parent)
 {
     m_worker = new RhythmWorker;

@@ -1,9 +1,6 @@
 #ifndef RHYTHMEXTRACTOR_H
 #define RHYTHMEXTRACTOR_H
 
-#include <essentia/pool.h>
-#include <essentia/algorithmfactory.h>
-
 #include <QMutex>
 #include <QThread>
 #include <QWaitCondition>

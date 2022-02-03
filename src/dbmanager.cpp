@@ -1,5 +1,7 @@
 #include "dbmanager.h"
 
+#include <QtSql>
+
 DBManager::DBManager(bool saveTrackData) : m_saveTrackData(saveTrackData)
 {
     if (!createConnection()) {

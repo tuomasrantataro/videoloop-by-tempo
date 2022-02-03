@@ -95,11 +95,6 @@ void AudioDevice::emitAndClearSongBuffer()
     m_wholeTrackData->clear();
 }
 
-void AudioDevice::printStateChange(QAudio::State state)
-{
-    qDebug("audiodevice state changed to: %d", state);
-}
-
 void AudioDevice::processAudioIn()
 {
     m_inputBuffer.seek(0);

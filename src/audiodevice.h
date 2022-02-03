@@ -5,12 +5,13 @@
 #include <QObject>
 #include <QString>
 #include <QTimer>
+#include <QList>
+#include <QBuffer>
+
 #include <QAudioDeviceInfo>
 #include <QAudio>
 #include <QAudioFormat>
 #include <QAudioInput>
-#include <QList>
-#include <QBuffer>
 
 #include <vector>
 #include <list>
@@ -34,8 +35,6 @@ public:
 
 public slots:
     void changeAudioInput(QString inputName);
-
-    void printStateChange(QAudio::State);
 
     void emitAndClearSongBuffer();
 
