@@ -24,6 +24,7 @@
 #include "pulseaudiowatcher.h"
 #include "dbmanager.h"
 #include "types.h"
+#include "settings.h"
 
 using namespace MyTypes;
 
@@ -66,8 +67,6 @@ private slots:
     void setAddReversedFrames();
     void setVideoLoop(QString loopName);
 
-    void saveSettings();
-
     void fixSize();
 
     void saveTrackData();
@@ -82,17 +81,11 @@ private slots:
     void removeCurrentTrack();
 
 private:
+    Settings* m_settings;
+
     void setTempoLimited();
     void updateLowerTempoLimit(float limit);
     void updateUpperTempoLimit(float limit);
-    void readSettings();
-
-    bool getLoopAddReversedFrames(QString loopName);
-    double getLoopTempoMultiplier(QString loopName);
-
-    void updateLoopSettings(QString loopName, bool addReverserdFrames, float tempoMultiplier);
-
-    QJsonObject m_loopSettings;
 
     bool detectDoubleTempoJump(float newTempo);
 
@@ -124,31 +117,20 @@ private:
     QCheckBox *m_startFullScreenCheckBox;
     QComboBox *m_screenSelect;
     QList<QScreen*> m_screens;
-    int m_screenNumber;
-    bool m_startAsFullScreen;
     QCheckBox *m_tempoControlsCheckBox;
-    bool m_showTempoControls;
 
     QCheckBox *m_reverseFramesCheckBox;
-    bool m_addReversedFrames;
-    bool m_loopAddReversedFrames;
 
     QComboBox *m_loopSelect;
-    QString m_loopName;
 
     QComboBox *m_audioSelect;
 
     QSlider *m_confidenceSlider;
     float m_confidenceLevel;
     QSlider *m_thresholdSlider;
-    float m_thresholdLevel;
 
     QLabel *m_tempoMultiplierLabel;
-    float m_tempoMultiplier;
     QSlider *m_tempoMultiplierSlider;
-
-    float m_tempoLowerLimit;
-    float m_tempoUpperLimit;
 
     float m_tempo = 60.0;
     float m_tempoLimited = m_tempo;
@@ -158,7 +140,7 @@ private:
     std::list<float> m_bpmBuffer{std::list<float>(5, m_tempo)};
     std::list<float> m_rejectedBpmBuffer{std::list<float>(10, 1.0)};
 
-    QString m_device;
+    //QString m_device;
     AudioDevice *m_audio;
 
     RhythmExtractor *m_rhythm;
@@ -180,9 +162,6 @@ private:
     bool m_disableAutoTempo = false;
 
     QTimer *m_smoothTempoUpdateTimer;
-    
-    QString m_pa_targetApplication;
-    QStringList m_pa_ignoreApplications;
 
     QStringList m_trackDataInvalidationReasons;
 

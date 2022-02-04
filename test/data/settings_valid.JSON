@@ -1,0 +1,28 @@
+{
+    "audio_device": "bluez_sink.2C_4D_79_10_4A_0C.a2dp_sink.monitor",
+    "confidence_threshold": 3.5,
+    "limit_tempo": true,
+    "loop_settings": {
+        "gandalf": {
+            "add_reversed_frames": true,
+            "tempo_multiplier": 0.5
+        },
+        "hyle": {
+            "add_reversed_frames": true,
+            "tempo_multiplier": 1
+        },
+        "leekspin": {
+            "add_reversed_frames": false,
+            "tempo_multiplier": 1
+        }
+    },
+    "pa_application_name": "spotify",
+    "pa_ignore_applications": [ "VLC", "Firefox"
+    ],
+    "screen": 0,
+    "show_tempo_controls": true,
+    "start_as_fullscreen": false,
+    "tempo_lower_limit": 60,
+    "tempo_upper_limit": 120,
+    "video_name": "gandalf"
+}

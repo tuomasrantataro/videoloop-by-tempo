@@ -9,6 +9,7 @@ set(EXECUTABLE_OUTPUT_PATH ${PROJECT_SOURCE_DIR})
 
 add_subdirectory(src)
 
+add_subdirectory(test)
 
 # Create a folder which has only the relevant files for using the program
 install(TARGETS videoloop-by-tempo DESTINATION "${CMAKE_CURRENT_SOURCE_DIR}/release")

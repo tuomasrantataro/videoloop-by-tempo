@@ -28,9 +28,10 @@ MainWindow::MainWindow(QCommandLineParser *parser) : m_parser(parser)
     qRegisterMetaType<AudioData>("AudioData");
     qRegisterMetaType<AudioBufferType>("AudioBufferType");
     
-    readSettings();
+    m_settings = new Settings();
+    m_settings->readSettings("settings.JSON");
 
-    m_graphicsWidget = new OpenGLWidget(m_loopName);
+    m_graphicsWidget = new OpenGLWidget(m_settings->getVideoLoopName());
     connect(m_graphicsWidget, &OpenGLWidget::toggleFullScreen, this, &MainWindow::setVideoFullScreen);
     connect(m_graphicsWidget, &OpenGLWidget::initReady, this, &MainWindow::updateTempo);
     connect(m_graphicsWidget, &OpenGLWidget::initReady, this, &MainWindow::setAddReversedFrames);
@@ -81,7 +82,7 @@ MainWindow::MainWindow(QCommandLineParser *parser) : m_parser(parser)
     m_thresholdSlider->setMinimum(0);
     m_thresholdSlider->setMaximum(50);
     m_thresholdSlider->setTickInterval(1);
-    m_thresholdSlider->setValue(int(10*m_thresholdLevel));
+    m_thresholdSlider->setValue(int(10*m_settings->getConfidenceThreshold()));
     connect(m_thresholdSlider, &QSlider::valueChanged, this, &MainWindow::setConfidenceLevel);
 
     QVBoxLayout *tempoLayout = new QVBoxLayout;
@@ -114,8 +115,8 @@ MainWindow::MainWindow(QCommandLineParser *parser) : m_parser(parser)
     m_upperBpmLine->setMaximumWidth(50);
     QLabel *bpm1 = new QLabel(tr("bpm"));
     QLabel *bpm2 = new QLabel(tr("bpm"));
-    updateLowerTempoLimit(m_tempoLowerLimit);
-    updateUpperTempoLimit(m_tempoUpperLimit);
+    updateLowerTempoLimit(m_settings->getTempoLowerLimit());
+    updateUpperTempoLimit(m_settings->getTempoUpperLimit());
     connect(m_lowerBpmLine, &QLineEdit::editingFinished, this, &MainWindow::readLowerLimit);
     connect(m_upperBpmLine, &QLineEdit::editingFinished, this, &MainWindow::readUpperLimit);
     QHBoxLayout *minLine = new QHBoxLayout;
@@ -133,8 +134,8 @@ MainWindow::MainWindow(QCommandLineParser *parser) : m_parser(parser)
     m_tempoMultiplierSlider->setMinimum(-2);
     m_tempoMultiplierSlider->setMaximum(2);
     m_tempoMultiplierSlider->setTickInterval(1);
-    m_tempoMultiplierSlider->setValue(log2(m_tempoMultiplier));
-    m_tempoMultiplierLabel->setText("Tempo multiplier " + QString::number(m_tempoMultiplier, 'f', 2));
+    m_tempoMultiplierSlider->setValue(log2(m_settings->getCurrentLoopTempoMultiplier()));
+    m_tempoMultiplierLabel->setText("Tempo multiplier " + QString::number(m_settings->getCurrentLoopTempoMultiplier(), 'f', 2));
     connect(m_tempoMultiplierSlider, &QSlider::valueChanged, this, &MainWindow::setTempoMultiplier);
 
     QGridLayout *limitLayout = new QGridLayout;
@@ -166,11 +167,11 @@ MainWindow::MainWindow(QCommandLineParser *parser) : m_parser(parser)
     m_videoGroup = new QGroupBox(tr("Video Options"));
 
     m_startFullScreenCheckBox = new QCheckBox(tr("Start in fullscreen mode"));
-    m_startFullScreenCheckBox->setChecked(m_startAsFullScreen);
+    m_startFullScreenCheckBox->setChecked(m_settings->getStartAsFullscreen());
     connect(m_startFullScreenCheckBox, &QCheckBox::clicked, this, &MainWindow::setStartFullScreen);
 
     m_tempoControlsCheckBox = new QCheckBox(tr("Show tempo controls in fullscreen"));
-    m_tempoControlsCheckBox->setChecked(m_showTempoControls);
+    m_tempoControlsCheckBox->setChecked(m_settings->getShowTempoControls());
     connect(m_tempoControlsCheckBox, &QCheckBox::clicked, this, &MainWindow::setShowTempoControls);
 
     QLabel *screenLabel = new QLabel(tr("Display:"));
@@ -179,14 +180,14 @@ MainWindow::MainWindow(QCommandLineParser *parser) : m_parser(parser)
     for (auto it = m_screens.begin(); it != m_screens.end(); it++) {
         m_screenSelect->addItem(QString((*it)->name() + ": " + (*it)->manufacturer() + " " + (*it)->model()));
     }
-    m_screenSelect->setCurrentIndex(m_screenNumber);
+    m_screenSelect->setCurrentIndex(m_settings->getScreenNumber());
     connect(m_screenSelect, QOverload<int>::of(&QComboBox::currentIndexChanged), this, &MainWindow::setScreenNumber);
     QHBoxLayout *screenLayout = new QHBoxLayout;
     screenLayout->addWidget(screenLabel, 1);
     screenLayout->addWidget(m_screenSelect, 2);
 
     m_reverseFramesCheckBox = new QCheckBox(tr("Add reversed frames to loop"));
-    m_reverseFramesCheckBox->setChecked(m_addReversedFrames);
+    m_reverseFramesCheckBox->setChecked(m_settings->getCurrentLoopAddReversedFrames());
     connect(m_reverseFramesCheckBox, &QCheckBox::clicked, this, &MainWindow::setAddReversedFrames);
 
     m_loopSelect = new QComboBox;
@@ -195,10 +196,10 @@ MainWindow::MainWindow(QCommandLineParser *parser) : m_parser(parser)
     for (auto it = videoLoops.begin(); it != videoLoops.end(); it++) {
         m_loopSelect->addItem(*it);
     }
-    if (videoLoops.contains(m_loopName)) {
-        m_loopSelect->setCurrentText(m_loopName);
+    if (videoLoops.contains(m_settings->getVideoLoopName())) {
+        m_loopSelect->setCurrentText(m_settings->getVideoLoopName());
     } else {
-        m_loopName = videoLoops[0];
+        m_settings->setVideoLoopName(videoLoops[0]);
     }
     connect(m_loopSelect, &QComboBox::currentTextChanged, this, &MainWindow::setVideoLoop);
 
@@ -242,7 +243,7 @@ MainWindow::MainWindow(QCommandLineParser *parser) : m_parser(parser)
 
     // Audio device in use
     bool showAllInputs = parser->isSet(QCommandLineOption("a"));
-    m_audio = new AudioDevice(this, m_device, showAllInputs);
+    m_audio = new AudioDevice(this, m_settings->getAudioDevice(), showAllInputs);
     connect(m_audio, &AudioDevice::dataReady, m_rhythm, &RhythmExtractor::calculateTempo);
     connect(m_audio, &AudioDevice::songDataReady, m_rhythm, &RhythmExtractor::calculateTempo);
 
@@ -271,12 +272,12 @@ MainWindow::MainWindow(QCommandLineParser *parser) : m_parser(parser)
     connect(m_smoothTempoUpdateTimer, &QTimer::timeout, this, &MainWindow::smoothUpdateTempo);
 
     // Get data from PulseAudio server and invalidate if there are unwanted programs also playing audio
-    m_pulseaudioWatcher = new PulseaudioWatcher(m_pa_targetApplication, m_pa_ignoreApplications);
+    m_pulseaudioWatcher = new PulseaudioWatcher(m_settings->getPulseAudioAppName(), m_settings->getPulseAudioIgnoreList());
     m_pulseaudioWatcher->startPolling(1000);
     connect(m_pulseaudioWatcher, &PulseaudioWatcher::invalidateData, this, &MainWindow::invalidateTrackData);
 
     this->show();
-    if (m_startAsFullScreen) {
+    if (m_settings->getStartAsFullscreen()) {
         setVideoFullScreen();
     }
 }
@@ -287,6 +288,8 @@ MainWindow::~MainWindow()
     delete m_trackDBManager;
     delete m_spotifyWatcher;
 
+    delete m_settings;
+
     delete m_graphicsWidget;
 }
 
@@ -295,10 +298,12 @@ void MainWindow::updateTempo()
     setTempoLimited();
     float tempo;
 
+    double multiplier = m_settings->getCurrentLoopTempoMultiplier();
+
     if (m_limitCheckBox->isChecked()) {
         tempo = m_tempoLimited;
     } else {
-        tempo = m_tempo*m_tempoMultiplier;
+        tempo = m_tempo*multiplier;
     }
     m_graphicsWidget->setBpm(tempo);
     m_setBpmLine->setText(QString::number(tempo, 'f', 1));
@@ -318,11 +323,14 @@ void MainWindow::smoothUpdateTempo()
 
 void MainWindow::setTempoLimited()
 {
-    float tempo = m_tempo*m_tempoMultiplier;
-    while (tempo < m_tempoLowerLimit) {
+    double multiplier = m_settings->getCurrentLoopTempoMultiplier();
+    float tempo = m_tempo*multiplier;
+    double lower = m_settings->getTempoLowerLimit();
+    double upper = m_settings->getTempoUpperLimit();
+    while (tempo < lower) {
         tempo = tempo * 2.0;
     }
-    while (tempo > m_tempoUpperLimit) {
+    while (tempo > upper) {
         tempo = tempo / 2.0;
     }
 
@@ -341,7 +349,7 @@ bool detectHalf(float oldTempo, float newTempo)
 bool detectDouble(float oldTempo, float newTempo)
 {
     float diff = abs(oldTempo - newTempo/2.0);
-    qDebug("diff: %.2f", diff);
+    //qDebug("diff: %.2f", diff);
     if (diff < 3.5) {
         return true;
     }
@@ -371,7 +379,7 @@ void MainWindow::autoUpdateTempo(const TempoData& tempoData)
     m_confidenceLevel = tempoData.confidence;
     m_confidenceSlider->setValue(int(10*m_confidenceLevel));
 
-    if (m_confidenceLevel < m_thresholdLevel) {
+    if (m_confidenceLevel < m_settings->getConfidenceThreshold()) {
         //qDebug("Confidence too low: %.2f, threshold %.2f", m_confidenceLevel, m_thresholdLevel);
         return;
     }
@@ -458,15 +466,16 @@ void MainWindow::readLowerLimit()
 
 void MainWindow::updateLowerTempoLimit(float limit)
 {
+    double upper = m_settings->getTempoUpperLimit();
     if (limit > 0.0) {
         // Keep at least 1 octave  between lower and upper limits
-        if (limit > m_tempoUpperLimit/2.0) {
-            limit = m_tempoUpperLimit/2.0;
+        if (limit > upper/2.0) {
+            limit = upper/2.0;
         }
-        m_tempoLowerLimit = limit;
+        m_settings->setTempoLowerLimit(limit);
     }
 
-    m_lowerBpmLine->setText(QString::number(m_tempoLowerLimit, 'f', 1));
+    m_lowerBpmLine->setText(QString::number(m_settings->getTempoLowerLimit(), 'f', 1));
 }
 
 void MainWindow::readUpperLimit()
@@ -483,242 +492,15 @@ void MainWindow::readUpperLimit()
 
 void MainWindow::updateUpperTempoLimit(float limit)
 {
+    double lower = m_settings->getTempoLowerLimit();
     if (limit > 1.0 && limit < 300.0) {
         // Keep at least 1 octave between lower and upper limits
-        if (limit < m_tempoLowerLimit*2.0) {
-            limit = m_tempoLowerLimit*2.0;
+        if (limit < lower*2.0) {
+            limit = lower*2.0;
         }
-        m_tempoUpperLimit = limit;
+        m_settings->setTempoUpperLimit(limit);
     }
-    m_upperBpmLine->setText(QString::number(m_tempoUpperLimit, 'f', 1));
-}
-
-void MainWindow::readSettings()
-{
-    QJsonObject values;
-    QJsonDocument loadDoc;
-
-    QFile loadFile(QStringLiteral("settings.JSON"));
-
-    if (!loadFile.open(QIODevice::ReadOnly)) {
-        qWarning("Couldn't open settings.JSON. Using default settings.");
-    } else {
-        QString settingsData = loadFile.readAll();
-        loadDoc = QJsonDocument::fromJson(settingsData.toUtf8());
-    }
-
-    if (loadFile.exists() && !loadDoc.isObject()) {
-        qWarning("Malformed settings.JSON file. Using default settings.");
-    } else {
-        values = loadDoc.object();
-    }
-
-    // Audio device for sound monitoring
-    m_device = "";
-    if (!values.value("audio_device").isUndefined()) {
-        m_device = values["audio_device"].toString();
-    }
-
-
-    // Enable tempo limiting
-    m_limitTempo = false;
-    if (!values.value("limit_tempo").isUndefined()) {
-        m_limitTempo = values["limit_tempo"].toBool();
-    }
-
-    // Enable double/half tempo filtering
-    //m_filterDouble = false;
-    //if (!values.value("filter_double").isUndefined()) {
-    //    m_filterDouble = values["filter_double"].toBool();
-    //}
-    m_filterDouble = false;
-
-    // Tempo lower limit
-    m_tempoLowerLimit = 60.0;
-    if (!values.value("tempo_lower_limit").isUndefined()) {
-        m_tempoLowerLimit = values["tempo_lower_limit"].toDouble();
-    }
-    if (m_tempoLowerLimit < 1.0) {
-        m_tempoLowerLimit = 1.0;
-    }
-
-    // Tempo upper limit
-    m_tempoUpperLimit = 120.0;
-    if (!values.value("tempo_upper_limit").isUndefined()) {
-        m_tempoUpperLimit = values["tempo_upper_limit"].toDouble();
-    }
-    if (m_tempoUpperLimit < 2*m_tempoLowerLimit) {
-        m_tempoUpperLimit = 2*m_tempoLowerLimit;
-    }
-
-
-    // Screen for showing the video
-    m_screenNumber = 0;
-    if (!values.value("screen").isUndefined()) {
-        m_screenNumber = values["screen"].toInt();
-    }
-    if (m_screenNumber < 0) {
-        m_screenNumber = 0;
-    }
-
-
-    // Start as fullscreen
-    m_startAsFullScreen = false;
-    if (!values.value("start_as_fullscreen").isUndefined()) {
-        m_startAsFullScreen = values["start_as_fullscreen"].toBool();
-    }
-
-
-    // Show controls when in fullscreen
-    m_showTempoControls = false;
-    if (!values.value("show_tempo_controls").isUndefined()) {
-        m_showTempoControls = values["show_tempo_controls"].toBool();
-    }
-
-
-    // Default video
-    m_loopName = "";
-    if (!values.value("video_name").isUndefined()) {
-        m_loopName = values["video_name"].toString();
-    }
-
-
-    // Confifence level
-    m_thresholdLevel = 3.0;
-    if (!values.value("confidence_threshold").isUndefined()) {
-        m_thresholdLevel = values["confidence_threshold"].toDouble();
-    }
-    if (m_thresholdLevel < 1.0) {
-        m_thresholdLevel = 1.0;
-    } else if (m_thresholdLevel > 5.0) {
-        m_thresholdLevel = 5.0;
-    }
-
-
-    // Player application in use
-    m_pa_targetApplication = "";
-    if (!values.value("pa_application_name").isUndefined()) {
-        m_pa_targetApplication = values["pa_application_name"].toString();
-    }
-
-    if (!values.value("pa_ignore_applications").isUndefined()) {
-        QJsonArray ignoreApps = values["pa_ignore_applications"].toArray();
-        for (auto item : ignoreApps) {
-            m_pa_ignoreApplications.push_back(item.toString());
-        }
-    }
-
-
-    // Setttings for individual video loops
-    QJsonObject loopSettings;
-    if (!values.value("loop_settings").isUndefined()) {
-        loopSettings = values["loop_settings"].toObject();
-    }
-
-    m_loopSettings = loopSettings;
-
-    // defaults in case data is not found
-    m_tempoMultiplier = 1.0;
-    m_addReversedFrames = false;
-    if (m_loopName != "" && m_loopSettings.keys().contains(m_loopName)) {
-        QJsonObject loopData = m_loopSettings[m_loopName].toObject();
-        if (!loopData.value("add_reversed_frames").isUndefined()) {
-            m_addReversedFrames = loopData["add_reversed_frames"].toBool();
-        }
-        if (!loopData.value("tempo_multiplier").isUndefined()) {
-            m_tempoMultiplier = loopData["tempo_multiplier"].toDouble();
-        }
-        // note: accurate comparisons work because these are powers of 2.
-        if (m_tempoMultiplier < 0.25) {
-            m_tempoMultiplier = 0.25;
-        } else if (m_tempoMultiplier > 4.0) {
-            m_tempoMultiplier = 4.0;
-        }
-    }
-
-    qDebug("Starting with settings:");
-    qDebug("  audo_device: %s", qPrintable(m_device));
-    qDebug("  limit_tempo: %d", m_limitTempo);
-    //qDebug("  filter_double: %d", m_filterDouble);
-    qDebug("  tempo_lower_limit: %f", m_tempoLowerLimit);
-    qDebug("  tempo_upper_limit: %f", m_tempoUpperLimit);
-    qDebug("  screen: %d", m_screenNumber);
-    qDebug("  start_as_fullscreen: %d", m_startAsFullScreen);
-    qDebug("  show_tempo_controls: %d", m_showTempoControls);
-    qDebug("  video_name: %s", qPrintable(m_loopName));
-    qDebug("  confidence_threshold: %f", m_thresholdLevel);
-}
-
-void MainWindow::saveSettings()
-{
-    QFile saveFile("settings.JSON");
-
-    if (!saveFile.open(QIODevice::WriteOnly)) {
-        qWarning("Coudn't save settings. Is the folder write-protected?");
-        return;
-    }
-
-    QJsonObject settingsData;
-    settingsData["audio_device"] = m_audio->getCurrentDevice();
-    settingsData["limit_tempo"] = m_limitCheckBox->isChecked();
-    //settingsData["filter_double"] = m_filterCheckBox->isChecked();
-    settingsData["tempo_lower_limit"] = m_tempoLowerLimit;
-    settingsData["tempo_upper_limit"] = m_tempoUpperLimit;
-    settingsData["screen"] = m_screenSelect->currentIndex();
-    settingsData["start_as_fullscreen"] = m_startAsFullScreen;
-    settingsData["show_tempo_controls"] = m_showTempoControls;
-    settingsData["video_name"] = m_loopName;
-    settingsData["confidence_threshold"] = m_thresholdLevel;
-    settingsData["pa_application_name"] = m_pa_targetApplication;
-    settingsData["pa_ignore_applications"] = QJsonArray::fromStringList(m_pa_ignoreApplications);
-    settingsData["loop_settings"] = m_loopSettings;   
-
-    qDebug("Saving settings:");
-    qDebug("  audio_device: %s", qPrintable(m_audio->getCurrentDevice()));
-    qDebug("  limit_tempo: %d", m_limitCheckBox->isChecked());
-    //qDebug("  filter_double: %d", m_filterCheckBox->isChecked());
-    qDebug("  tempo_lower_limit: %f", m_tempoLowerLimit);
-    qDebug("  tempo_upper_limit: %f", m_tempoUpperLimit);
-    qDebug("  screen: %d", m_screenSelect->currentIndex());
-    qDebug("  start_as_fullscreen: %d", m_startAsFullScreen);
-    qDebug("  show_tempo_controls: %d", m_showTempoControls);
-    qDebug("  video_name: %s", qPrintable(m_loopName));
-    qDebug("  confidence_threshold %f", m_thresholdLevel);
-    qDebug("  pa_application_name: %s", qPrintable(m_pa_targetApplication));
-    qDebug() << "  pa_ignore_applications:" << m_pa_ignoreApplications;
-
-    saveFile.write(QJsonDocument(settingsData).toJson());
-}
-
-bool MainWindow::getLoopAddReversedFrames(QString loopName)
-{
-    QJsonObject loopData = m_loopSettings[loopName].toObject();
-
-    if (loopData.value("add_reversed_frames").isUndefined()) {
-        return false;
-    }
-    
-    return loopData["add_reversed_frames"].toBool();
-}
-
-double MainWindow::getLoopTempoMultiplier(QString loopName)
-{
-    QJsonObject loopData = m_loopSettings[loopName].toObject();
-
-    if (loopData.value("tempo_multiplier").isUndefined()) {
-        return 1.0;
-    }
-    
-    return loopData["tempo_multiplier"].toDouble();
-}
-
-void MainWindow::updateLoopSettings(QString loopName, bool addReversedFrames, float tempoMultiplier)
-{
-    QJsonObject settingsData;
-    settingsData["add_reversed_frames"] = m_addReversedFrames;
-    settingsData["tempo_multiplier"] = m_tempoMultiplier;
-
-    m_loopSettings[loopName] = settingsData;
+    m_upperBpmLine->setText(QString::number(m_settings->getTempoUpperLimit(), 'f', 1));
 }
 
 void MainWindow::setVideoFullScreen()
@@ -727,7 +509,7 @@ void MainWindow::setVideoFullScreen()
         m_graphicsWidget->setWindowState(Qt::WindowNoState);
         m_graphicsWidget->setParent(this);
         m_layout->insertWidget(0, m_graphicsWidget, 5);
-        if (!m_showTempoControls) {
+        if (!m_settings->getShowTempoControls()) {
             show();
         } else {
             m_layout->addWidget(m_audioGroup, 1);
@@ -739,13 +521,14 @@ void MainWindow::setVideoFullScreen()
     } else {
         m_graphicsWidget->setParent(nullptr);
         m_screens = qApp->screens();
-        if (m_screenNumber > m_screens.size()-1) {
-            m_screenNumber = 0;
+        if (m_settings->getScreenNumber() > m_screens.size()-1) {
+            //m_screenNumber = 0;
+            m_settings->setScreenNumber(0);
         }
-        QRect screen = m_screens[m_screenNumber]->geometry();
+        QRect screen = m_screens[m_settings->getScreenNumber()]->geometry();
         m_graphicsWidget->setGeometry(screen);
         m_graphicsWidget->showFullScreen();
-        if (!m_showTempoControls) {
+        if (!m_settings->getShowTempoControls()) {
             hide();
         } else {
             m_layout->removeWidget(m_audioGroup);
@@ -759,18 +542,19 @@ void MainWindow::setVideoFullScreen()
 
 void MainWindow::setScreenNumber(int idx)
 {
-    m_screenNumber = idx;
+    m_settings->setScreenNumber(idx);
 }
 
 void MainWindow::setConfidenceLevel(int value)
 {
-    m_thresholdLevel = float(value)/10.0;
+    m_settings->setConfidenceThreshold(double(value)/10.0);
 }
 
 void MainWindow::setTempoMultiplier(int value)
 {
-    m_tempoMultiplier = pow(2.0, float(value));
-    QString multiplierStr = QString::number(m_tempoMultiplier, 'f', 2);
+    double multiplier = pow(2.0, double(value));
+    m_settings->setCurrentLoopTempoMultiplier(multiplier);
+    QString multiplierStr = QString::number(multiplier, 'f', 2);
     m_tempoMultiplierLabel->setText("Tempo multiplier " + multiplierStr);
     
     updateTempo();
@@ -778,34 +562,33 @@ void MainWindow::setTempoMultiplier(int value)
 
 void MainWindow::setStartFullScreen()
 {
-    m_startAsFullScreen = m_startFullScreenCheckBox->isChecked();
+    m_settings->setStartAsFullscreen(m_startFullScreenCheckBox->isChecked());
 }
 
 void MainWindow::setShowTempoControls()
 {
-    m_showTempoControls = m_tempoControlsCheckBox->isChecked();
+    m_settings->setShowTempoControls(m_tempoControlsCheckBox->isChecked());
 }
 
 void MainWindow::setAddReversedFrames()
 {
-    m_addReversedFrames = m_reverseFramesCheckBox->isChecked();
-    m_graphicsWidget->setAddReversedFrames(m_addReversedFrames);
+    bool addReversedFrames = m_reverseFramesCheckBox->isChecked();
+
+    m_settings->setCurrentLoopAddReversedFrames(addReversedFrames);
+    m_graphicsWidget->setAddReversedFrames(addReversedFrames);
 }
 
 void MainWindow::setVideoLoop(QString loopName)
 {
-    // Save the settings used for the previous loop video
-    updateLoopSettings(m_loopName, m_addReversedFrames, m_tempoMultiplier);
-
-    m_loopName = loopName;
+    m_settings->setVideoLoopName(loopName);
     m_graphicsWidget->setFrameFolder(loopName);
 
-    m_tempoMultiplier = getLoopTempoMultiplier(m_loopName);
-    m_tempoMultiplierSlider->setValue(log2(m_tempoMultiplier));
-    m_tempoMultiplierLabel->setText("Tempo multiplier " + QString::number(m_tempoMultiplier, 'f', 2));
+    double multiplier = m_settings->getCurrentLoopTempoMultiplier();
+    m_tempoMultiplierSlider->setValue(log2(multiplier));
+    m_tempoMultiplierLabel->setText("Tempo multiplier " + QString::number(multiplier, 'f', 2));
 
-    m_addReversedFrames = getLoopAddReversedFrames(m_loopName);
-    m_reverseFramesCheckBox->setChecked(m_addReversedFrames);
+    bool addReversedFrames = m_settings->getCurrentLoopAddReversedFrames();
+    m_reverseFramesCheckBox->setChecked(addReversedFrames);
     setAddReversedFrames();
 
     updateTempo();
@@ -818,7 +601,10 @@ void MainWindow::fixSize()
 
 void MainWindow::closeEvent(QCloseEvent *e)
 {
-    saveSettings();
+    m_settings->setAudioDevice(m_audio->getCurrentDevice());
+    m_settings->setLimitTempo(m_limitCheckBox->isChecked());
+    m_settings->setScreenNumber(m_screenSelect->currentIndex());
+    m_settings->writeSettings("settings.JSON");
 }
 
 int MainWindow::checkInit()

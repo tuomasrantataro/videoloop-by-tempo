@@ -80,6 +80,11 @@ target_link_libraries(SpotifyWatcher
                 Qt5::DBus
 )
 
+add_library(Settings settings.cpp)
+target_link_libraries(Settings
+    PUBLIC      Qt5::Core
+)   
+
 add_library(GUI gui.cpp)
 add_dependencies(GUI RhythmExtractor)
 target_link_libraries(GUI
@@ -90,6 +95,7 @@ target_link_libraries(GUI
                 OpenGLWidget
                 SpotifyWatcher
                 PulseAudioWatcher
+                Settings
 )
 
 add_executable(videoloop-by-tempo main.cpp)
