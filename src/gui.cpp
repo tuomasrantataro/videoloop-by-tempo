@@ -22,12 +22,12 @@ MainWindow::MainWindow(QCommandLineParser *parser) : m_parser(parser)
     };
 
     qRegisterMetaType<TempoData>("TempoData");
-
     //NOTE: why this is needed in addition to AudioData
     qRegisterMetaType<std::vector<uint8_t>>("std::vector<uint8_t>");
     qRegisterMetaType<AudioData>("AudioData");
     qRegisterMetaType<AudioBufferType>("AudioBufferType");
     
+
     m_settings = new Settings();
     m_settings->readSettings("settings.JSON");
 
@@ -41,8 +41,55 @@ MainWindow::MainWindow(QCommandLineParser *parser) : m_parser(parser)
     connect(m_graphicsWidget, &OpenGLWidget::initReady, this, &MainWindow::setAddReversedFrames);
     connect(m_graphicsWidget, &OpenGLWidget::spacePressed, this, &MainWindow::toggleManualTempo);
 
+    // Rhythm data calculation
+    m_rhythm = new RhythmExtractor(this);
+    connect(m_rhythm, &RhythmExtractor::calculationReady, this, &MainWindow::receiveBPMCalculationResult);
 
-    // Layout for setting tempo
+    // Audio device in use
+    bool showAllInputs = parser->isSet(QCommandLineOption("a"));
+    m_audio = new AudioDevice(this, m_settings->getAudioDevice(), showAllInputs);
+    connect(m_audio, &AudioDevice::dataReady, m_rhythm, &RhythmExtractor::calculateTempo);
+    connect(m_audio, &AudioDevice::songDataReady, m_rhythm, &RhythmExtractor::calculateTempo);
+
+    // Get data from Spotify through D-Bus
+    m_spotifyWatcher = new SpotifyWatcher;
+    connect(m_spotifyWatcher, &SpotifyWatcher::trackChanged, this, &MainWindow::updateTrackInfo);
+    connect(m_spotifyWatcher, &SpotifyWatcher::invalidateData, this, &MainWindow::invalidateTrackData);
+
+    // Get audio data after we get signal from Spotify that is has changed track
+    connect(this, &MainWindow::trackCalculationNeeded, m_audio, &AudioDevice::emitAndClearSongBuffer);
+
+    // Save track tempo data to a database
+    bool saveTrackData = !parser->isSet(QCommandLineOption("n"));
+    m_trackDBManager = new DBManager(saveTrackData);
+
+    // Get data from PulseAudio server and invalidate if there are unwanted programs also playing audio
+    m_pulseaudioWatcher = new PulseaudioWatcher(m_settings->getPulseAudioAppName(), m_settings->getPulseAudioIgnoreList());
+    m_pulseaudioWatcher->startPolling(1000);
+    connect(m_pulseaudioWatcher, &PulseaudioWatcher::invalidateData, this, &MainWindow::invalidateTrackData);
+
+
+    initUI();
+
+    this->show();
+    if (m_settings->getStartAsFullscreen()) {
+        setVideoFullScreen();
+    }
+}
+
+MainWindow::~MainWindow()
+{
+    delete m_pulseaudioWatcher;
+    delete m_trackDBManager;
+    delete m_spotifyWatcher;
+
+    delete m_settings;
+
+    delete m_graphicsWidget;
+}
+
+void MainWindow::initUI()
+{
     m_tempoGroup = new QGroupBox(tr("Tempo"));
 
     m_lockCheckBox = new QCheckBox(tr("Manual tempo"), this);
@@ -162,6 +209,14 @@ MainWindow::MainWindow(QCommandLineParser *parser) : m_parser(parser)
     audioSelectLayout->addWidget(m_audioSelect);
     m_audioGroup->setLayout(audioSelectLayout);
 
+    QStringList audioDevices = m_audio->getAudioDevices();
+    for (auto it = audioDevices.begin(); it != audioDevices.end(); it++) {
+        m_audioSelect->addItem(*it);
+    }
+    connect(m_audioSelect, &QComboBox::currentTextChanged, m_audio, &AudioDevice::changeAudioInput);
+    connect(m_audio, &AudioDevice::invalidateData, this, &MainWindow::invalidateTrackData);
+
+
 
     // Layout for video settings
     m_videoGroup = new QGroupBox(tr("Video Options"));
@@ -231,61 +286,6 @@ MainWindow::MainWindow(QCommandLineParser *parser) : m_parser(parser)
     m_keySpacebar = new QShortcut(this);
     m_keySpacebar->setKey(Qt::Key_Space);
     connect(m_keySpacebar, &QShortcut::activated, this, &MainWindow::toggleManualTempo);
-
-
-
-
-    /// Non-UI initializations
-
-    // Rhythm data calculation
-    m_rhythm = new RhythmExtractor(this);
-    connect(m_rhythm, &RhythmExtractor::calculationReady, this, &MainWindow::receiveBPMCalculationResult);
-
-    // Audio device in use
-    bool showAllInputs = parser->isSet(QCommandLineOption("a"));
-    m_audio = new AudioDevice(this, m_settings->getAudioDevice(), showAllInputs);
-    connect(m_audio, &AudioDevice::dataReady, m_rhythm, &RhythmExtractor::calculateTempo);
-    connect(m_audio, &AudioDevice::songDataReady, m_rhythm, &RhythmExtractor::calculateTempo);
-
-    QStringList audioDevices = m_audio->getAudioDevices();
-    for (auto it = audioDevices.begin(); it != audioDevices.end(); it++) {
-        m_audioSelect->addItem(*it);
-    }
-    connect(m_audioSelect, &QComboBox::currentTextChanged, m_audio, &AudioDevice::changeAudioInput);
-    connect(m_audio, &AudioDevice::invalidateData, this, &MainWindow::invalidateTrackData);
-
-    // Get data from Spotify through D-Bus
-    m_spotifyWatcher = new SpotifyWatcher;
-    connect(m_spotifyWatcher, &SpotifyWatcher::trackChanged, this, &MainWindow::updateTrackInfo);
-    connect(m_spotifyWatcher, &SpotifyWatcher::invalidateData, this, &MainWindow::invalidateTrackData);
-
-    // Get audio data after we get signal from Spotify that is has changed track
-    connect(this, &MainWindow::trackCalculationNeeded, m_audio, &AudioDevice::emitAndClearSongBuffer);
-
-    // Save track tempo data to a database
-    bool saveTrackData = !parser->isSet(QCommandLineOption("n"));
-    m_trackDBManager = new DBManager(saveTrackData);
-
-    // Get data from PulseAudio server and invalidate if there are unwanted programs also playing audio
-    m_pulseaudioWatcher = new PulseaudioWatcher(m_settings->getPulseAudioAppName(), m_settings->getPulseAudioIgnoreList());
-    m_pulseaudioWatcher->startPolling(1000);
-    connect(m_pulseaudioWatcher, &PulseaudioWatcher::invalidateData, this, &MainWindow::invalidateTrackData);
-
-    this->show();
-    if (m_settings->getStartAsFullscreen()) {
-        setVideoFullScreen();
-    }
-}
-
-MainWindow::~MainWindow()
-{
-    delete m_pulseaudioWatcher;
-    delete m_trackDBManager;
-    delete m_spotifyWatcher;
-
-    delete m_settings;
-
-    delete m_graphicsWidget;
 }
 
 void MainWindow::updateTempo(double tempo)

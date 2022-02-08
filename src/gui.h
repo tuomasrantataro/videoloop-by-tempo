@@ -82,6 +82,8 @@ private slots:
     void setUpperTempoLimit(double limit);
 
 private:
+    void initUI();
+    
     Settings* m_settings;
 
     int checkDirectories();
