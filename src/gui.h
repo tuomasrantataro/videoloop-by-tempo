@@ -36,8 +36,6 @@ public:
     MainWindow(QCommandLineParser *parser);
     ~MainWindow();
 
-    int checkInit();
-
 protected:
     void closeEvent(QCloseEvent *e);
 
@@ -83,11 +81,9 @@ private slots:
 
 private:
     void initUI();
-    
+
     Settings* m_settings;
-
-    int checkDirectories();
-
+    
     QCommandLineParser *m_parser;
 
     OpenGLWidget *m_graphicsWidget;
@@ -144,8 +140,6 @@ private:
     RhythmExtractor *m_rhythm;
 
     QShortcut *m_keySpacebar;
-
-    int m_initError = 0;
 
     SpotifyWatcher *m_spotifyWatcher;
 
