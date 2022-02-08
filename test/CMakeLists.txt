@@ -19,3 +19,10 @@ target_link_libraries(tst_settings
                 Settings
                 
 )
+
+add_executable(tst_tempo tst_tempo.cpp)
+target_link_libraries(tst_tempo
+                Qt5::Test
+                Qt5::Core
+                Tempo
+)

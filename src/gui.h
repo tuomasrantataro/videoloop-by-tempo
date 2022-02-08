@@ -25,6 +25,7 @@
 #include "dbmanager.h"
 #include "types.h"
 #include "settings.h"
+#include "tempo.h"
 
 using namespace MyTypes;
 
@@ -41,17 +42,10 @@ protected:
     void closeEvent(QCloseEvent *e);
 
 private slots:
-    void updateTempo();
+    void updateTempo(double tempo);
 
-    void smoothUpdateTempo();
-
-    void manualUpdateTempo();
     void toggleManualTempo();
     void updateLockCheckBox();
-    void updateFilterCheckBox();
-
-    void autoUpdateTempo(const TempoData& tempoData);
-    void setConfidenceLevel(int value);
 
     void setTempoMultiplier(int value);
 
@@ -80,14 +74,15 @@ private slots:
 
     void removeCurrentTrack();
 
+    void bpmLineChanged();
+
+    void setConfidenceThreshold(int value);
+
+    void setLowerTempoLimit(double limit);
+    void setUpperTempoLimit(double limit);
+
 private:
     Settings* m_settings;
-
-    void setTempoLimited();
-    void updateLowerTempoLimit(float limit);
-    void updateUpperTempoLimit(float limit);
-
-    bool detectDoubleTempoJump(float newTempo);
 
     int checkDirectories();
 
@@ -106,12 +101,9 @@ private:
     QLineEdit *m_setBpmLine;
     QPalette m_setBpmLinePalette;
     QCheckBox *m_lockCheckBox;
-    bool m_lockTempo;
     QCheckBox *m_filterCheckBox;
-    bool m_filterDouble;
 
     QCheckBox *m_limitCheckBox;
-    bool m_limitTempo;
     QLineEdit *m_lowerBpmLine;
     QLineEdit *m_upperBpmLine;
     QCheckBox *m_startFullScreenCheckBox;
@@ -126,21 +118,25 @@ private:
     QComboBox *m_audioSelect;
 
     QSlider *m_confidenceSlider;
-    float m_confidenceLevel;
     QSlider *m_thresholdSlider;
 
     QLabel *m_tempoMultiplierLabel;
     QSlider *m_tempoMultiplierSlider;
 
-    float m_tempo = 60.0;
-    float m_tempoLimited = m_tempo;
-    float m_targetTempo;
-    float m_step;
+    TrackData m_trackData;
 
-    std::list<float> m_bpmBuffer{std::list<float>(5, m_tempo)};
-    std::list<float> m_rejectedBpmBuffer{std::list<float>(10, 1.0)};
+    bool m_invalidTrackData = false;
 
-    //QString m_device;
+    bool m_disableAutoTempo = false;
+
+    QTimer *m_smoothTempoUpdateTimer;
+
+    QStringList m_trackDataInvalidationReasons;
+
+    QString m_currentTrackId;
+
+    Tempo *m_tempoHandler;
+
     AudioDevice *m_audio;
 
     RhythmExtractor *m_rhythm;
@@ -155,19 +151,7 @@ private:
 
     DBManager *m_trackDBManager;
 
-    TrackData m_trackData;
-
-    bool m_invalidTrackData = false;
-
-    bool m_disableAutoTempo = false;
-
-    QTimer *m_smoothTempoUpdateTimer;
-
-    QStringList m_trackDataInvalidationReasons;
-
     QPushButton *m_wrongTempoButton;
-
-    QString m_currentTrackId;
 
 signals:
     void trackCalculationNeeded();

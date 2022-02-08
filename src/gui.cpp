@@ -23,7 +23,7 @@ MainWindow::MainWindow(QCommandLineParser *parser) : m_parser(parser)
 
     qRegisterMetaType<TempoData>("TempoData");
 
-    //FIXME: why this is needed in addition to AudioData
+    //NOTE: why this is needed in addition to AudioData
     qRegisterMetaType<std::vector<uint8_t>>("std::vector<uint8_t>");
     qRegisterMetaType<AudioData>("AudioData");
     qRegisterMetaType<AudioBufferType>("AudioBufferType");
@@ -31,9 +31,13 @@ MainWindow::MainWindow(QCommandLineParser *parser) : m_parser(parser)
     m_settings = new Settings();
     m_settings->readSettings("settings.JSON");
 
+    m_tempoHandler = new Tempo(this);
+    connect(m_tempoHandler, &Tempo::tempoChanged, this, &MainWindow::updateTempo);
+    connect(m_tempoHandler, &Tempo::tempoLowerLimitChanged, this, &MainWindow::setLowerTempoLimit);
+    connect(m_tempoHandler, &Tempo::tempoUpperLimitChanged, this, &MainWindow::setUpperTempoLimit);
+
     m_graphicsWidget = new OpenGLWidget(m_settings->getVideoLoopName());
     connect(m_graphicsWidget, &OpenGLWidget::toggleFullScreen, this, &MainWindow::setVideoFullScreen);
-    connect(m_graphicsWidget, &OpenGLWidget::initReady, this, &MainWindow::updateTempo);
     connect(m_graphicsWidget, &OpenGLWidget::initReady, this, &MainWindow::setAddReversedFrames);
     connect(m_graphicsWidget, &OpenGLWidget::spacePressed, this, &MainWindow::toggleManualTempo);
 
@@ -43,25 +47,21 @@ MainWindow::MainWindow(QCommandLineParser *parser) : m_parser(parser)
 
     m_lockCheckBox = new QCheckBox(tr("Manual tempo"), this);
     connect(m_lockCheckBox, &QPushButton::clicked, this, &MainWindow::updateLockCheckBox);
+    connect(m_lockCheckBox, &QPushButton::toggled, m_tempoHandler, &Tempo::setEnableManualTempo);
 
-    m_setBpmLine = new QLineEdit(QString::number(m_tempo, 'f', 1));
+    m_setBpmLine = new QLineEdit(QString::number(m_tempoHandler->getTempo(), 'f', 1));
     m_setBpmLine->setMaxLength(5);
     m_setBpmLine->setMaximumWidth(50);
     m_setBpmLinePalette = QPalette();
     m_setBpmLinePalette.setColor(QPalette::Text, Qt::gray);
     m_setBpmLine->setPalette(m_setBpmLinePalette);
-    connect(m_setBpmLine, &QLineEdit::returnPressed, this, &MainWindow::manualUpdateTempo);
+    connect(m_setBpmLine, &QLineEdit::returnPressed, this, &MainWindow::bpmLineChanged);
 
     QLabel *bpmLabel = new QLabel(tr("bpm"));
     QHBoxLayout *tempoLine = new QHBoxLayout;
     tempoLine->addWidget(m_setBpmLine);
     tempoLine->addWidget(bpmLabel);
 
-    // FIXME: currently not added to UI, but deleting this causes segfault on program exit
-    //m_filterCheckBox = new QCheckBox(tr("Filter half/double tempo"));
-    //m_filterCheckBox->setChecked(m_filterDouble);
-    //connect(m_filterCheckBox, &QPushButton::clicked, this, &MainWindow::updateFilterCheckBox);
-    
 
     QPushButton *m_wrongTempoButton = new QPushButton(tr("Wrong tempo"));
     connect(m_wrongTempoButton, &QPushButton::clicked, this, &MainWindow::removeCurrentTrack);
@@ -73,7 +73,7 @@ MainWindow::MainWindow(QCommandLineParser *parser) : m_parser(parser)
     m_confidenceSlider->setMinimum(0);
     m_confidenceSlider->setMaximum(50);
     m_confidenceSlider->setTickInterval(1);
-    m_confidenceSlider->setValue(int(10*m_confidenceLevel));
+    m_confidenceSlider->setValue(int(10*m_tempoHandler->getConfidenceThreshold()));
     m_confidenceSlider->setStyleSheet("QSlider::handle:horizontal {background-color: rgba(0, 0, 0, 0);}");
 
     QLabel *thresholdLabel = new QLabel(tr("Set Threshold"));
@@ -83,13 +83,13 @@ MainWindow::MainWindow(QCommandLineParser *parser) : m_parser(parser)
     m_thresholdSlider->setMaximum(50);
     m_thresholdSlider->setTickInterval(1);
     m_thresholdSlider->setValue(int(10*m_settings->getConfidenceThreshold()));
-    connect(m_thresholdSlider, &QSlider::valueChanged, this, &MainWindow::setConfidenceLevel);
+    connect(m_thresholdSlider, &QSlider::valueChanged, this, &MainWindow::setConfidenceThreshold);
+
 
     QVBoxLayout *tempoLayout = new QVBoxLayout;
     tempoLayout->addLayout(tempoLine);
     tempoLayout->addWidget(m_lockCheckBox);
     //tempoLayout->addStretch(1);
-    //tempoLayout->addWidget(m_filterCheckBox);
     tempoLayout->addWidget(m_wrongTempoButton);
     tempoLayout->addWidget(confidenceLabel);
     tempoLayout->addWidget(m_confidenceSlider);
@@ -102,8 +102,8 @@ MainWindow::MainWindow(QCommandLineParser *parser) : m_parser(parser)
     m_limitGroup = new QGroupBox(tr("Adjust Tempo"));
 
     m_limitCheckBox = new QCheckBox(tr("Enable limits"));
-    m_limitCheckBox->setChecked(m_limitTempo);
-    connect(m_limitCheckBox, &QCheckBox::clicked, this, &MainWindow::updateTempo);
+    m_limitCheckBox->setChecked(m_tempoHandler->getEnableTempoLimits());
+    connect(m_limitCheckBox, &QCheckBox::toggled, m_tempoHandler, &Tempo::setEnableTempoLimits);
 
     QLabel *minLabel = new QLabel(tr("Min"));
     QLabel *maxLabel = new QLabel(tr("Max"));
@@ -115,8 +115,8 @@ MainWindow::MainWindow(QCommandLineParser *parser) : m_parser(parser)
     m_upperBpmLine->setMaximumWidth(50);
     QLabel *bpm1 = new QLabel(tr("bpm"));
     QLabel *bpm2 = new QLabel(tr("bpm"));
-    updateLowerTempoLimit(m_settings->getTempoLowerLimit());
-    updateUpperTempoLimit(m_settings->getTempoUpperLimit());
+    m_tempoHandler->setTempoLowerLimit(m_settings->getTempoLowerLimit());
+    m_tempoHandler->setTempoUpperLimit(m_settings->getTempoUpperLimit());
     connect(m_lowerBpmLine, &QLineEdit::editingFinished, this, &MainWindow::readLowerLimit);
     connect(m_upperBpmLine, &QLineEdit::editingFinished, this, &MainWindow::readUpperLimit);
     QHBoxLayout *minLine = new QHBoxLayout;
@@ -266,11 +266,6 @@ MainWindow::MainWindow(QCommandLineParser *parser) : m_parser(parser)
     bool saveTrackData = !parser->isSet(QCommandLineOption("n"));
     m_trackDBManager = new DBManager(saveTrackData);
 
-    // Timer running when song (and videoloop tempo) changes
-    m_smoothTempoUpdateTimer = new QTimer(this);
-    m_smoothTempoUpdateTimer->setInterval(1000);
-    connect(m_smoothTempoUpdateTimer, &QTimer::timeout, this, &MainWindow::smoothUpdateTempo);
-
     // Get data from PulseAudio server and invalidate if there are unwanted programs also playing audio
     m_pulseaudioWatcher = new PulseaudioWatcher(m_settings->getPulseAudioAppName(), m_settings->getPulseAudioIgnoreList());
     m_pulseaudioWatcher->startPolling(1000);
@@ -293,125 +288,15 @@ MainWindow::~MainWindow()
     delete m_graphicsWidget;
 }
 
-void MainWindow::updateTempo()
+void MainWindow::updateTempo(double tempo)
 {
-    setTempoLimited();
-    float tempo;
-
     double multiplier = m_settings->getCurrentLoopTempoMultiplier();
 
-    if (m_limitCheckBox->isChecked()) {
-        tempo = m_tempoLimited;
-    } else {
-        tempo = m_tempo*multiplier;
-    }
-    m_graphicsWidget->setBpm(tempo);
+    m_graphicsWidget->setBpm(tempo*multiplier);
     m_setBpmLine->setText(QString::number(tempo, 'f', 1));
 }
 
-void MainWindow::smoothUpdateTempo()
-{
-    if (abs(m_tempo - m_targetTempo) < abs(m_step)) {
-        m_tempo = m_targetTempo;
-        m_smoothTempoUpdateTimer->stop();
-    }
-    else {
-        m_tempo = m_tempo - m_step;
-    }
-    updateTempo();
-}
-
-void MainWindow::setTempoLimited()
-{
-    double multiplier = m_settings->getCurrentLoopTempoMultiplier();
-    float tempo = m_tempo*multiplier;
-    double lower = m_settings->getTempoLowerLimit();
-    double upper = m_settings->getTempoUpperLimit();
-    while (tempo < lower) {
-        tempo = tempo * 2.0;
-    }
-    while (tempo > upper) {
-        tempo = tempo / 2.0;
-    }
-
-    m_tempoLimited = tempo;
-}
-
-bool detectHalf(float oldTempo, float newTempo)
-{
-    float diff = abs(oldTempo - newTempo*2.0);
-    if (diff < 5.5) {
-        return true;
-    }
-    return false;
-}
-
-bool detectDouble(float oldTempo, float newTempo)
-{
-    float diff = abs(oldTempo - newTempo/2.0);
-    //qDebug("diff: %.2f", diff);
-    if (diff < 3.5) {
-        return true;
-    }
-    return false;
-}
-
-bool MainWindow::detectDoubleTempoJump(float newTempo)
-{
-    // Use fuzzy compare to detect possible double and half tempos
-    bool halfFound = detectHalf(m_tempo, newTempo);
-    bool doubleFound = detectDouble(m_tempo, newTempo);
-    return halfFound || doubleFound;
-}
-
-void MainWindow::autoUpdateTempo(const TempoData& tempoData)
-{
-    /*TODO: Add filtering. Essentia sometimes outputs single values which vary significantly from
-    others, making playback speed jumpy. To fix this, for example require two subsequent values to
-    be close to each other.
-    
-    TODO: Remove half or double tempos found*/
-
-    if (m_disableAutoTempo) {
-        return;
-    }
-    
-    m_confidenceLevel = tempoData.confidence;
-    m_confidenceSlider->setValue(int(10*m_confidenceLevel));
-
-    if (m_confidenceLevel < m_settings->getConfidenceThreshold()) {
-        //qDebug("Confidence too low: %.2f, threshold %.2f", m_confidenceLevel, m_thresholdLevel);
-        return;
-    }
-
-    float tempo = tempoData.BPM;
-    // filter to integer, since most music uses metronomes with integer bpm
-    tempo = round(tempo);
-    if (m_filterDouble && detectDoubleTempoJump(tempo)) {
-        qDebug("Double or half tempo detected.");
-        return;
-    }
-
-    m_bpmBuffer.pop_front();
-    m_bpmBuffer.push_back(tempo);
-
-    float average = 0;
-    for (auto it = m_bpmBuffer.begin(); it != m_bpmBuffer.end(); it++) {
-        average += *it;
-    }
-    average = average/m_bpmBuffer.size();
-    //qDebug("Newest tempo: %.1f | Confidence: %.2f | Average of last 5: %.1f", tempo, m_confidenceLevel, average);
-
-    if (m_lockCheckBox->isChecked()) {
-        return;
-    }
-
-    m_tempo = average;
-
-    updateTempo();
-}
-
-void MainWindow::manualUpdateTempo()
+void MainWindow::bpmLineChanged()
 {
     QString bpmText = m_setBpmLine->text();
 
@@ -420,8 +305,7 @@ void MainWindow::manualUpdateTempo()
 
     if (success) {
         if (tempo > 1.0) {
-            m_tempo = tempo;
-            updateTempo();
+            m_tempoHandler->setTempoManual(tempo);
         }
     }
 }
@@ -441,11 +325,6 @@ void MainWindow::updateLockCheckBox()
     }
 }
 
-void MainWindow::updateFilterCheckBox()
-{
-    m_filterDouble = m_lockCheckBox->isChecked();
-}
-
 void MainWindow::toggleManualTempo()
 {
     m_lockCheckBox->setChecked(!m_lockCheckBox->isChecked());
@@ -460,21 +339,13 @@ void MainWindow::readLowerLimit()
     float limit = boxText.toFloat(&success);
     
     if (success) {
-        updateLowerTempoLimit(limit);
+        m_tempoHandler->setTempoLowerLimit(limit);
     }
 }
 
-void MainWindow::updateLowerTempoLimit(float limit)
+void MainWindow::setLowerTempoLimit(double limit)
 {
-    double upper = m_settings->getTempoUpperLimit();
-    if (limit > 0.0) {
-        // Keep at least 1 octave  between lower and upper limits
-        if (limit > upper/2.0) {
-            limit = upper/2.0;
-        }
-        m_settings->setTempoLowerLimit(limit);
-    }
-
+    m_settings->setTempoLowerLimit(limit);
     m_lowerBpmLine->setText(QString::number(m_settings->getTempoLowerLimit(), 'f', 1));
 }
 
@@ -486,20 +357,14 @@ void MainWindow::readUpperLimit()
     float limit = boxText.toFloat(&success);
 
     if (success) {
-        updateUpperTempoLimit(limit);
+        //updateUpperTempoLimit(limit);
+        m_tempoHandler->setTempoUpperLimit(limit);
     }
 }
 
-void MainWindow::updateUpperTempoLimit(float limit)
+void MainWindow::setUpperTempoLimit(double limit)
 {
-    double lower = m_settings->getTempoLowerLimit();
-    if (limit > 1.0 && limit < 300.0) {
-        // Keep at least 1 octave between lower and upper limits
-        if (limit < lower*2.0) {
-            limit = lower*2.0;
-        }
-        m_settings->setTempoUpperLimit(limit);
-    }
+    m_settings->setTempoUpperLimit(limit);
     m_upperBpmLine->setText(QString::number(m_settings->getTempoUpperLimit(), 'f', 1));
 }
 
@@ -545,19 +410,12 @@ void MainWindow::setScreenNumber(int idx)
     m_settings->setScreenNumber(idx);
 }
 
-void MainWindow::setConfidenceLevel(int value)
-{
-    m_settings->setConfidenceThreshold(double(value)/10.0);
-}
-
 void MainWindow::setTempoMultiplier(int value)
 {
     double multiplier = pow(2.0, double(value));
     m_settings->setCurrentLoopTempoMultiplier(multiplier);
     QString multiplierStr = QString::number(multiplier, 'f', 2);
     m_tempoMultiplierLabel->setText("Tempo multiplier " + multiplierStr);
-    
-    updateTempo();
 }
 
 void MainWindow::setStartFullScreen()
@@ -591,7 +449,7 @@ void MainWindow::setVideoLoop(QString loopName)
     m_reverseFramesCheckBox->setChecked(addReversedFrames);
     setAddReversedFrames();
 
-    updateTempo();
+    //updateTempo();
 }
 
 void MainWindow::fixSize()
@@ -691,9 +549,7 @@ void MainWindow::updateTrackInfo(QString oldTrackId, QString oldArtist, QString 
     if (newBpm > 0.0) {
         m_disableAutoTempo = true;
 
-        m_targetTempo = newBpm;
-        m_step = (m_tempo - m_targetTempo)/7.0; // TODO: Make non-hardcoded?
-        m_smoothTempoUpdateTimer->start();
+        m_tempoHandler->setTempoSmooth(newBpm);
 
     }
     else {
@@ -719,7 +575,11 @@ void MainWindow::receiveBPMCalculationResult(const TempoData& data, MyTypes::Aud
         updateTrackTempo(data);
     }
     else {
-        autoUpdateTempo(data);
+        m_confidenceSlider->setValue(int(10*data.confidence));
+        if (!m_disableAutoTempo) {
+            m_tempoHandler->setTempoAutomatic(data);
+        }
+        
     }
 }
 
@@ -732,4 +592,11 @@ void MainWindow::invalidateTrackData(QString reason)
 void MainWindow::removeCurrentTrack()
 {
     m_trackDBManager->deleteTrack(m_currentTrackId);
+}
+
+void MainWindow::setConfidenceThreshold(int value)
+{
+    double value_ = (double)value/10.0;
+    m_settings->setConfidenceThreshold(value_);
+    m_tempoHandler->setConfidenceThreshold(value_);
 }

@@ -83,7 +83,12 @@ target_link_libraries(SpotifyWatcher
 add_library(Settings settings.cpp)
 target_link_libraries(Settings
     PUBLIC      Qt5::Core
-)   
+)
+
+add_library(Tempo tempo.cpp)
+target_link_libraries(Tempo
+    PUBLIC      Qt5::Core
+)
 
 add_library(GUI gui.cpp)
 add_dependencies(GUI RhythmExtractor)
@@ -96,6 +101,7 @@ target_link_libraries(GUI
                 SpotifyWatcher
                 PulseAudioWatcher
                 Settings
+                Tempo
 )
 
 add_executable(videoloop-by-tempo main.cpp)
