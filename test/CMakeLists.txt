@@ -26,3 +26,10 @@ target_link_libraries(tst_tempo
                 Qt5::Core
                 Tempo
 )
+
+add_executable(tst_dbmanager tst_dbmanager.cpp)
+target_link_libraries(tst_dbmanager
+                Qt5::Test
+                Qt5::Core
+                DBManager
+)

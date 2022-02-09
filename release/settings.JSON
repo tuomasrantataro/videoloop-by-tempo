@@ -1,0 +1,16 @@
+{
+    "add_reversed_frames": false,
+    "audio_device": "bluez_sink.2C_4D_79_10_4A_0C.a2dp_sink.monitor",
+    "confidence_threshold": 3,
+    "limit_tempo": false,
+    "pa_application_name": "",
+    "pa_ignore_applications": [
+    ],
+    "screen": 0,
+    "show_tempo_controls": false,
+    "start_as_fullscreen": false,
+    "tempo_lower_limit": 60,
+    "tempo_multiplier": 1,
+    "tempo_upper_limit": 120,
+    "video_name": "bongocat"
+}

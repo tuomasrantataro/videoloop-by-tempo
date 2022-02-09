@@ -104,13 +104,16 @@ void SpotifyWatcher::propertiesChanged(QString interface, QMap<QString, QVariant
         newMap.insert(key, arg);
     }
 
-    QString newTrackId = newMap["mpris:trackid"].toString();
+    m_newTrackId = newMap["mpris:trackid"].toString();
     QString newArtist = newMap["xesam:artist"].toString();
     QString newTitle = newMap["xesam:title"].toString();
 
-    if (newTrackId.compare(m_oldTrackId)) {
+    //m_newTrackId = 
 
-        emit trackChanged(m_oldTrackId, m_oldArtist, m_oldTitle, newTrackId);
+    if (m_newTrackId.compare(m_oldTrackId)) {
+
+        emit trackChanged(m_oldTrackId, m_oldArtist, m_oldTitle);
+        emit newTrackId(m_newTrackId);
 
         quint64 previousTrackChange = m_lastTrackChange;
         m_lastTrackChange = QDateTime::currentMSecsSinceEpoch();
@@ -125,7 +128,7 @@ void SpotifyWatcher::propertiesChanged(QString interface, QMap<QString, QVariant
 
         m_spotifyLength = newMap["mpris:length"].toULongLong()/1000;   // change from usec to msec
 
-        m_oldTrackId = newTrackId;
+        m_oldTrackId = m_newTrackId;
         m_oldArtist = newArtist;
         m_oldTitle = newTitle;
 

@@ -29,12 +29,12 @@ typedef struct pa_clientlist_c {
 } pa_clientlist_c_t;
 
 
-class PulseaudioWatcher : public QObject
+class PulseAudioWatcher : public QObject
 {
     Q_OBJECT
 public:
-    PulseaudioWatcher(QString targetProgram, QStringList ignorePrograms);
-    ~PulseaudioWatcher();
+    PulseAudioWatcher(QString targetProgram, QStringList ignorePrograms);
+    ~PulseAudioWatcher();
 
 public:
 

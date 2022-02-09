@@ -7,22 +7,33 @@ Tempo::Tempo(QObject* parent) : m_parent(parent)
     connect(m_smootheningTimer, &QTimer::timeout, this, &Tempo::smoothenTempo);
 }
 
-// Handle track recording and changing tempo from there in another class
-void Tempo::setTempo(double tempo)
+void Tempo::emitTempo()
 {
-    m_tempoLimit = limitTempo(tempo);
+    if (m_enableTempoLimits) {
+        emit tempoChanged(m_tempoLimit);
+    }
+    else {
+        emit tempoChanged(m_tempoNoLimit);
+    }
+}
+
+void Tempo::emitTempo(double limited, double notLimited)
+{
+    m_tempoLimit = limited;
+    m_tempoNoLimit = notLimited;
     
-    emit tempoChanged(tempo);
-    
+    emitTempo();
 }
 
 void Tempo::setTempoManual(double tempo)
 {
     m_tempoTargetNoLimit = tempo;
-    m_tempoNoLimit = tempo;
+    m_tempoBufferNoLimit.assign(5, m_tempoTargetNoLimit);
+
     m_tempoTargetLimit = limitTempo(tempo);
     m_tempoBufferLimit.assign(5, m_tempoTargetLimit);
-    setTempo(m_tempoTargetLimit);
+
+    emitTempo(limitTempo(tempo), tempo);
 }
 
 void Tempo::setTempoAutomatic(const MyTypes::TempoData& data)
@@ -37,24 +48,20 @@ void Tempo::setTempoAutomatic(const MyTypes::TempoData& data)
     // filter double/half tempos
     tempo_ = filterDoubleHalf(tempo_, m_tempoBufferNoLimit);
 
-    m_tempoTargetLimit = limitTempo(tempo_);
     m_tempoBufferLimit.pop_front();
-    m_tempoBufferLimit.push_back(m_tempoTargetLimit);
+    m_tempoBufferLimit.push_back(limitTempo(tempo_));
 
-    m_tempoTargetNoLimit = tempo_;
     m_tempoBufferNoLimit.pop_front();
-    m_tempoBufferNoLimit.push_back(m_tempoTargetNoLimit);
+    m_tempoBufferNoLimit.push_back(tempo_);
 
-    if (m_enableManualTempo) {
+    if (m_enableManualTempo || m_disableAutomaticTempo) {
         return;
     }
+    
+    m_tempoTargetLimit = limitTempo(tempo_);
+    m_tempoTargetNoLimit = tempo_;
 
-    if (m_enableTempoLimits) {
-        setTempo(getBufferAverage(m_tempoBufferLimit));
-    }
-    else {
-        setTempo(getBufferAverage(m_tempoBufferNoLimit));
-    }
+    emitTempo(getBufferAverage(m_tempoBufferLimit), getBufferAverage(m_tempoBufferNoLimit));
 }
 
 void Tempo::setTempoSmooth(double tempo)
@@ -62,15 +69,28 @@ void Tempo::setTempoSmooth(double tempo)
     m_tempoTargetNoLimit = tempo;
     m_tempoTargetLimit = limitTempo(tempo);
 
-    m_tempoSmootheningStep = (m_tempoLimit - m_tempoTargetLimit)/7.0;
+    if (m_enableTempoLimits) {
+        m_tempoSmootheningStep = (m_tempoLimit - m_tempoTargetLimit)/7.0;
+    }
+    else {
+        m_tempoSmootheningStep = (m_tempoNoLimit - m_tempoTargetNoLimit)/7.0;
+    }
+    
     m_smootheningTimer->start();
 }
 
 void Tempo::smoothenTempo()
 {
-    double tempo = m_tempoLimit;
-    if (abs(tempo - m_tempoTargetLimit) < abs(m_tempoSmootheningStep)) {
-        tempo = m_tempoTargetLimit;
+    double tempo = m_tempoNoLimit;
+    double target = m_tempoTargetNoLimit;
+
+    if (m_enableTempoLimits) {
+        tempo = m_tempoLimit;
+        target = m_tempoTargetLimit;
+    }
+
+    if (abs(tempo - target) < abs(m_tempoSmootheningStep)) {
+        tempo = target;
         m_smootheningTimer->stop();
     }
     else {
@@ -78,7 +98,7 @@ void Tempo::smoothenTempo()
     }
 
     if (!m_enableManualTempo) {
-        setTempo(tempo);
+        emitTempo(limitTempo(tempo), tempo);
     }
 }
 
@@ -131,16 +151,8 @@ double Tempo::limitTempo(double tempo) const
 void Tempo::setEnableTempoLimits(bool enable)
 {
     m_enableTempoLimits = enable;
-    if (m_enableTempoLimits) {
-        m_tempoLimit = limitTempo(m_tempoLimit);
-        m_tempoTargetLimit = limitTempo(m_tempoTargetLimit);
-        setTempo(m_tempoLimit);
-    } 
-    else {
-        setTempo(m_tempoNoLimit);
-    }
 
-    
+    emitTempo(limitTempo(m_tempoNoLimit), m_tempoNoLimit);
 }
 
 void Tempo::setTempoLowerLimit(double limit)

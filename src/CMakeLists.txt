@@ -90,27 +90,33 @@ target_link_libraries(Tempo
     PUBLIC      Qt5::Core
 )
 
-add_library(GUI gui.cpp)
-add_dependencies(GUI RhythmExtractor)
-target_link_libraries(GUI
+add_library(Track track.cpp)
+target_link_libraries(Track
+    PUBLIC      Qt5::Core
+                DBManager
+                SpotifyWatcher
+                PulseAudioWatcher
+)
+
+add_library(MainWindow mainwindow.cpp)
+add_dependencies(MainWindow RhythmExtractor)
+target_link_libraries(MainWindow
     PUBLIC      Qt5::Widgets
                 RhythmExtractor
                 AudioDevice
-                DBManager
                 OpenGLWidget
-                SpotifyWatcher
-                PulseAudioWatcher
                 Settings
                 Tempo
+                Track
 )
 
 add_executable(videoloop-by-tempo main.cpp)
 
-add_dependencies(videoloop-by-tempo GUI)
+add_dependencies(videoloop-by-tempo MainWindow)
 
 target_link_libraries(videoloop-by-tempo
                 Qt5::Widgets
                 libessentia.a
                 libfftw3f.a
-                GUI
+                MainWindow
 )

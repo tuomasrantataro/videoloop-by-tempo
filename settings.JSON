@@ -16,13 +16,13 @@
             "tempo_multiplier": 1
         }
     },
-    "pa_application_name": "Spotify",
+    "pa_application_name": "spotify",
     "pa_ignore_applications": [
     ],
     "screen": 0,
     "show_tempo_controls": true,
     "start_as_fullscreen": false,
-    "tempo_lower_limit": 30,
-    "tempo_upper_limit": 250,
+    "tempo_lower_limit": 70,
+    "tempo_upper_limit": 155,
     "video_name": "gandalf"
 }

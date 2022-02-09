@@ -20,7 +20,8 @@ public:
 
 public slots:
     void setEnableManualTempo(bool enable) { m_enableManualTempo = enable; }
-    void setTempo(double tempo);
+    //void setTempo(double tempo);
+    //void setTempo();
     void setTempoManual(double tempo);
     void setTempoAutomatic(const MyTypes::TempoData& data);
     void setTempoSmooth(double tempo);
@@ -29,6 +30,7 @@ public slots:
     void setTempoLowerLimit(double limit);
     void setEnableTempoLimits(bool enable);
     void smoothenTempo();
+    void disableAutomaticTempo(bool disable) { m_disableAutomaticTempo = disable; }
 
     void setSmootheningTimerInterval(int msec) { m_smootheningTimer->setInterval(msec); }
 
@@ -41,6 +43,7 @@ private:
     QObject* m_parent;
     QTimer* m_smootheningTimer;
     bool m_enableManualTempo = false;
+    bool m_disableAutomaticTempo = false;
     double m_confidenceThreshold = 3.0;
     double m_tempoTargetLimit = m_tempoLimit;
     double m_tempoTargetNoLimit = m_tempoLimit;
@@ -56,6 +59,8 @@ private:
     double limitTempo(double tempo) const;
     double filterDoubleHalf(double tempo, const std::list<double>& buffer) const;
     double getBufferAverage(const std::list<double>& buffer) const;
+    void emitTempo();
+    void emitTempo(double limited, double notLimited);
 };
 
 

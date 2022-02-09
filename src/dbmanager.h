@@ -9,22 +9,25 @@ class DBManager : public QObject
 {
     Q_OBJECT
 public: 
-    DBManager(bool saveTrackData);
+    DBManager(bool saveTrackData, QString fileName = "trackdata.db");
     ~DBManager();
 
-    bool createConnection();
-
-    float getBPM(QString trackId) { return m_bpmData[trackId]; };
+    double getTempo(QString trackId) { return m_bpmData[trackId]; };
 
 public slots:
-    void writeBPM(MyTypes::TrackData& data);
+    void writeData(MyTypes::TrackData& data);
     void deleteTrack(QString trackId);
 
 private:
+    bool createConnection();
+
     void readBPMValues();
 
-    QMap<QString, float> m_bpmData;
+    QMap<QString, double> m_bpmData;
     bool m_saveTrackData;
+    QString m_fileName;
+
+    QString m_connectionName;
 };
 
 #endif

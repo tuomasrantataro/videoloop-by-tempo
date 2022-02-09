@@ -5,8 +5,6 @@
 
 #include "tempo.h"
 
-//Q_DECLARE_METATYPE(Tempo)
-
 class TestTempo : public QObject
 {
     Q_OBJECT
@@ -167,6 +165,7 @@ void TestTempo::setTempoSmooth()
         spy.wait();
         arguments = spy.takeFirst();
         double current = arguments.at(0).toDouble();
+        //qDebug() << current << final_tempo;
         if (req < starting) {
             QVERIFY(prev > current);
         }

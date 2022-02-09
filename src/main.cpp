@@ -1,7 +1,7 @@
 #include <QApplication>
 #include <QCommandLineParser>
 
-#include "gui.h"
+#include "mainwindow.h"
 
 bool validateDirectories();
 

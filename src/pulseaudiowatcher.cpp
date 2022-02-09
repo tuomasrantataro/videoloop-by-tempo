@@ -10,30 +10,30 @@ void pa_clientlist_cb(pa_context *c, const pa_client_info *l, int eol, void *use
 
 
 
-PulseaudioWatcher::PulseaudioWatcher(QString targetProgram, QStringList ignorePrograms) :
+PulseAudioWatcher::PulseAudioWatcher(QString targetProgram, QStringList ignorePrograms) :
     m_targetProgram(targetProgram),
     m_ignorePrograms(ignorePrograms)
 {
     m_checkPulseSinkInputs = new QTimer(this);
-    connect(m_checkPulseSinkInputs, &QTimer::timeout, this, &PulseaudioWatcher::checkPulseAudioData);
+    connect(m_checkPulseSinkInputs, &QTimer::timeout, this, &PulseAudioWatcher::checkPulseAudioData);
 }
 
-PulseaudioWatcher::~PulseaudioWatcher()
+PulseAudioWatcher::~PulseAudioWatcher()
 {
     
 }
 
-void PulseaudioWatcher::startPolling(int interval)
+void PulseAudioWatcher::startPolling(int interval)
 {
     m_checkPulseSinkInputs->start(interval);
 }
 
-void PulseaudioWatcher::stopPolling()
+void PulseAudioWatcher::stopPolling()
 {
     m_checkPulseSinkInputs->stop();
 }
 
-void PulseaudioWatcher::checkPulseAudioData()
+void PulseAudioWatcher::checkPulseAudioData()
 {
     pa_clientlist_c_t pa_client_list;
     pa_client_list.clients = NULL;      // Will be reallocated in pa_clientlist_cb
@@ -91,7 +91,7 @@ void PulseaudioWatcher::checkPulseAudioData()
     free(pa_sinkinput_list.inputs);
 }
 
-int PulseaudioWatcher::pa_get_clients(pa_sinkinputlist_c_t *sinkinputs, pa_clientlist_c_t *clients) {
+int PulseAudioWatcher::pa_get_clients(pa_sinkinputlist_c_t *sinkinputs, pa_clientlist_c_t *clients) {
 
     pa_mainloop *pa_ml;
     pa_mainloop_api *pa_mlapi;

@@ -2,7 +2,8 @@
 
 #include <QtSql>
 
-DBManager::DBManager(bool saveTrackData) : m_saveTrackData(saveTrackData)
+DBManager::DBManager(bool saveTrackData, QString fileName)
+    : m_saveTrackData(saveTrackData), m_fileName(fileName)
 {
     if (!createConnection()) {
         qWarning("Database connection failed. Is the QT SQLITE driver installed?");
@@ -14,14 +15,14 @@ DBManager::DBManager(bool saveTrackData) : m_saveTrackData(saveTrackData)
 
 DBManager::~DBManager()
 {
-
+    QSqlDatabase::removeDatabase(m_connectionName);
 }
 
 
 bool DBManager::createConnection()
 {
     auto db = QSqlDatabase::addDatabase("QSQLITE");
-    db.setDatabaseName("tracktempos.db");
+    db.setDatabaseName(m_fileName);
 
     if (!db.open()) {
         return false;
@@ -41,12 +42,13 @@ bool DBManager::createConnection()
                    "artist TEXT, "
                    "title TEXT)");
 
+        m_connectionName = db.connectionName();
         return true;
     }
 
 }
 
-void DBManager::writeBPM(MyTypes::TrackData& data)
+void DBManager::writeData(MyTypes::TrackData& data)
 {
 
     // Do not save data if flag '-n' is used
@@ -63,10 +65,9 @@ void DBManager::writeBPM(MyTypes::TrackData& data)
 
     bool update = false;
     if (query.isValid()) {
-        float dbConfidence = query.value(0).toFloat();
+        double dbConfidence = query.value(0).toDouble();
 
         if (data.confidence < dbConfidence) {
-            qDebug() << "  Data with better confidence exists";
             return;
         }
         else {
@@ -132,9 +133,11 @@ void DBManager::readBPMValues()
     query.prepare("SELECT trackid, bpm FROM trackdata;");
     query.exec();
 
+    m_bpmData.clear();
+
     while (query.next()) {
         QString key = query.value(0).toString();
-        float bpm = query.value(1).toFloat();
+        double bpm = query.value(1).toDouble();
         m_bpmData.insert(key, bpm);
     }
 }
@@ -150,5 +153,8 @@ void DBManager::deleteTrack(QString trackId)
     if (!ret) {
         qWarning("Error executing data deletion query:\n\t%s", qPrintable(query.lastQuery()));
         qWarning("Error:\n\t%s", qPrintable(query.lastError().text()));
+    }
+    else {
+        readBPMValues();    // remove the track also from m_bpmData
     }
 }

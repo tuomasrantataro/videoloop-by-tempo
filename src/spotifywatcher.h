@@ -13,12 +13,13 @@ public:
     SpotifyWatcher();
     ~SpotifyWatcher();
 
-public slots:
-    void propertiesChanged(QString interface, QMap<QString, QVariant> signalData, QStringList l);
-
 signals:
-    void trackChanged(QString oldTrackId, QString oldArtist, QString oldTitle, QString newTrackId);
+    void trackChanged(QString oldTrackId, QString oldArtist, QString oldTitle);
+    void newTrackId(QString newTrackId);
     void invalidateData(QString reason);
+
+private slots:
+    void propertiesChanged(QString interface, QMap<QString, QVariant> signalData, QStringList l);
 
 private:
     QDBusConnection m_bus = QDBusConnection::sessionBus();
@@ -26,6 +27,7 @@ private:
     QString m_oldTrackId;
     QString m_oldArtist;
     QString m_oldTitle;
+    QString m_newTrackId;
 
     qint64 m_lastTrackChange = QDateTime::currentMSecsSinceEpoch();
     qint64 m_spotifyLength = 0;
