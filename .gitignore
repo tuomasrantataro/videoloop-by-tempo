@@ -1,2 +1,5 @@
 build
 .vscode
+3rd_party
+trackdata.db
+tst_*

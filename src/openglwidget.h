@@ -15,6 +15,14 @@
 #include <chrono>
 #include <vector>
 
+typedef struct VideoFrames {
+    QString name;
+    QList<QImage> frames;
+    double aspectRatio;
+    std::vector<int> frameIndexes;
+    QImage getFrame(int index) { return frames.at(frameIndexes.at(index)); };
+} VideoFrames;
+
 class OpenGLWidget : public QOpenGLWidget, protected QOpenGLFunctions
 {
     Q_OBJECT
@@ -26,13 +34,9 @@ public:
 
     void setBpm(float tempo);
 
-    QSize minimumSizeHint() const {
-        return QSize(400, 300);
-    }
+    QSize minimumSizeHint() const { return QSize(400, 300); }
 
-    QStringList getFrameFolders() {
-        return m_frameFolders;
-    }
+    QStringList getFrameFolders() { return m_frameFolders; }
 
 public slots:
     void setAddReversedFrames(bool add);
@@ -53,8 +57,12 @@ protected:
 private:
     void makeObject();
 
+    void loadVideoFrameFiles();
+
     QStringList m_frameFolders;
     QString m_frameFolder;
+
+    QMap<QString, VideoFrames> m_videoLoops;
 
     QList<QOpenGLTexture*> m_textures;
     QOpenGLShaderProgram *m_program = nullptr;

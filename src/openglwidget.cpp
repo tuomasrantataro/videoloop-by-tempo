@@ -3,7 +3,7 @@
 
 OpenGLWidget::OpenGLWidget(QString frameFolder) : m_frameFolder(frameFolder)
 {
-
+    loadVideoFrameFiles();
 }
 
 OpenGLWidget::~OpenGLWidget()
@@ -12,8 +12,8 @@ OpenGLWidget::~OpenGLWidget()
     delete m_timer;
     m_vbo->destroy();
     delete m_vbo;
-    for (auto it = m_textures.begin(); it != m_textures.end(); it++) {
-        delete *it;
+    for (auto item : m_textures) {
+        delete item;
     }
     delete m_program;
     doneCurrent();
@@ -92,7 +92,8 @@ void OpenGLWidget::paintGL()
     float horizontalScaling = 1.0/verticalScaling;
     if (verticalScaling < 1.0) {
         verticalScaling = 1.0;
-    } else {
+    } 
+    else {
         horizontalScaling = 1.0;
     }
     QMatrix4x4 m;
@@ -105,7 +106,7 @@ void OpenGLWidget::paintGL()
     m_program->setAttributeBuffer(PROGRAM_TEXCOORD_ATTRIBUTE, GL_FLOAT, 2 * sizeof(GLfloat), 2, 4 * sizeof(GLfloat));
 
     int idx = m_frameIndexes[m_currentFrameIndex];
-    m_textures[idx]->bind();
+    m_textures.at(idx)->bind();
     glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
 }
 
@@ -120,46 +121,19 @@ void OpenGLWidget::makeObject()
 {
     m_frameIndexes.clear();
 
-    // Find frames for animation
-    QDir directory("frames");
+    VideoFrames loop = m_videoLoops.value(m_frameFolder);
 
-    m_frameFolders = directory.entryList(QDir::NoDotAndDotDot | QDir::Dirs);
+    QList<QImage> frames = loop.frames;
 
-    QString path;
-    if (m_frameFolders.contains(m_frameFolder)) {
-        path = "frames/" + m_frameFolder + "/";
-    } else {
-        path = "frames/" + m_frameFolders[0] + "/";
-    }
-    QDir frameDir(path);
+    int imageCount = frames.size();
 
-    QStringList frames = frameDir.entryList(QStringList() << "*.jpg" << "*.JPG" << "*.png" << "*.PNG", QDir::Files);
+    m_frameIndexes = loop.frameIndexes;
+    m_frameAspectRatio = loop.aspectRatio;
 
-    QList<QImage> images;
-    images.reserve(frames.size());
-
-    foreach(QString filename, frames) {
-        QString filePath = path + filename;
-        images.push_back(QImage(filePath).convertToFormat(QImage::Format_RGBA8888_Premultiplied));
-    }
-
-    int imageCount = images.size();
-    m_frameAspectRatio = float(images[0].width())/float(images[0].height());
     for (int i = 0; i < imageCount; i++) {
-        m_frameIndexes.push_back(i);
-    }
-    
-    if (imageCount > 1) {
-        for (int i = imageCount-2; i > 0; i--) {
-            m_frameIndexes.push_back(i);
-        }
-    }
-    
-    for (int i = 0; i < imageCount; i++) {
-        m_textures.append(new QOpenGLTexture(images[i]));
+        m_textures.append(new QOpenGLTexture(frames[i]));
     }
 
-    //m_frameCount = m_frameIndexes.size();
     m_frameCount = m_textures.size();
 
     static const int coords[4][2] = {
@@ -209,7 +183,8 @@ void OpenGLWidget::setAddReversedFrames(bool add)
     m_addReversedFrames = add;
     if (add) {
         m_frameCount = m_frameIndexes.size();
-    } else {
+    }
+    else {
         m_frameCount = m_textures.size();
     }
 }
@@ -218,45 +193,70 @@ void OpenGLWidget::setFrameFolder(QString folderName)
 {
     makeCurrent();
     QList<QOpenGLTexture*> textures;
-    std::vector<int> frameIndexes;
 
-    QString path = "frames/" + folderName + "/";
-    QStringList frames = QDir(path).entryList(QStringList() << "*.jpg" << "*.JPG" << "*.png" << "*.PNG", QDir::Files);
+    VideoFrames loop = m_videoLoops.value(folderName);
 
-    QList<QImage> images;
-    images.reserve(frames.size());
+    QList<QImage> frames = loop.frames;
 
-    foreach(QString filename, frames) {
-        QString filePath = path + filename;
-        images.push_back(QImage(filePath).convertToFormat(QImage::Format_RGBA8888_Premultiplied));
-    }
+    int imageCount = frames.size();
 
-    int imageCount = images.size();
-    float frameAspectRatio = float(images[0].width())/float(images[0].height());
-    for (int i = 0; i < imageCount; i++) {
-        frameIndexes.push_back(i);
-    }
-    
-    if (imageCount > 1) {
-        for (int i = imageCount-2; i > 0; i--) {
-            frameIndexes.push_back(i);
-        }
-    }
     
     for (int i = 0; i < imageCount; i++) {
-        textures.append(new QOpenGLTexture(images[i]));
+        textures.append(new QOpenGLTexture(frames[i]));
     }
 
     QList<QOpenGLTexture*> old = m_textures;
 
-    m_timer->stop();
+    //m_timer->stop();
+    m_frameFolder = folderName;
     m_textures = textures;
-    m_frameAspectRatio = frameAspectRatio;
-    m_frameIndexes = frameIndexes;
+    m_frameAspectRatio = loop.aspectRatio;
+    m_frameIndexes = loop.frameIndexes;
     setAddReversedFrames(m_addReversedFrames);
-    m_timer->start(10);
+    //m_timer->start(10);
 
-    for (auto it = old.begin(); it != old.end(); it++) {
-        delete *it;
+    for (auto item : old) {
+        delete item;
+    }
+}
+
+void OpenGLWidget::loadVideoFrameFiles()
+{
+    QDir directory("frames");
+
+    QStringList frameFolders = directory.entryList(QDir::NoDotAndDotDot | QDir::Dirs);
+
+    for (QString folder : frameFolders) {
+        VideoFrames framesObj;
+        framesObj.name = folder;
+
+        QString path = "frames/" + folder + "/";
+        QDir frameDir(path);
+
+        QStringList frameNames = frameDir.entryList(QStringList() << "*.jpg" << "*.JPG" << "*.png" << "*.PNG", QDir::Files);
+
+        framesObj.frames.reserve(frameNames.size());
+
+        for (QString filename : frameNames) {
+            QString filePath = path + filename;
+            framesObj.frames.push_back(QImage(filePath).convertToFormat(QImage::Format_RGBA8888_Premultiplied));
+        }
+
+        int imageCount = framesObj.frames.size();
+
+        framesObj.aspectRatio = double(framesObj.frames[0].width())/double(framesObj.frames[0].height());
+
+        for (int i = 0; i < imageCount; i++) {
+            framesObj.frameIndexes.push_back(i);
+        }
+        
+        if (imageCount > 1) {
+            for (int i = imageCount-2; i > 0; i--) {
+                framesObj.frameIndexes.push_back(i);
+            }
+        }
+
+        m_videoLoops.insert(folder, framesObj);
+
     }
 }

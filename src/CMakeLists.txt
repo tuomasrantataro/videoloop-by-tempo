@@ -50,6 +50,11 @@ add_library(DBManager dbmanager.cpp)
 target_link_libraries(DBManager
     PRIVATE     Qt5::Sql)
 
+add_library(Frames frames.cpp)
+target_link_libraries(Frames
+    PRIVATE     Qt5::Core
+)
+
 add_library(OpenGLWidget openglwidget.cpp)
 target_link_libraries(OpenGLWidget
     PUBLIC      Qt5::Widgets)
