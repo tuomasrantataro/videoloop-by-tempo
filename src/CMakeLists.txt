@@ -20,10 +20,10 @@ ExternalProject_add(essentia
     GIT_TAG "v2.1_beta5"
     GIT_SHALLOW true
     GIT_PROGRESS true
-    BINARY_DIR ../../3rd_party/essentia
-    DOWNLOAD_DIR ../../3rd_party/essentia
-    SOURCE_DIR ../../3rd_party/essentia
-    CONFIGURE_COMMAND ./waf configure --lightweight=fftw --build-static --prefix=./
+    GIT_SUBMODULES ""
+    BINARY_DIR ${PROJECT_SOURCE_DIR}/3rd_party/essentia
+    SOURCE_DIR ${PROJECT_SOURCE_DIR}/3rd_party/essentia
+    CONFIGURE_COMMAND ./waf configure --ignore-algos=* --include-algos=RhythmExtractor2013,BeatTrackerMultiFeature,FrameCutter,NoiseAdder,Windowing,FFT,CartesianToPolar,OnsetDetection,HFC,Flux,MelBands,TriangularBands,TempoTapDegara,MovingAverage,IIR,AutoCorrelation,OnsetDetectionGlobal,Spectrum,Magnitude,ERBBands,TempoTapMaxAgreement,Scale --lightweight=fftw --build-static --prefix=./
     BUILD_COMMAND ./waf
     INSTALL_COMMAND ./waf install
 )
@@ -34,11 +34,10 @@ ExternalProject_Add_Step(essentia
     COMMENT "Setting permission to execute ./waf for building essentia"
     DEPENDEES download
     DEPENDERS configure
-    WORKING_DIRECTORY ../../3rd_party/essentia
+    WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}/3rd_party/essentia
 )
 
 SET(ESSENTIA_DIR ${PROJECT_SOURCE_DIR}/3rd_party/essentia)
-
 
 add_compile_options(-Wall)
 
@@ -49,11 +48,6 @@ target_link_libraries(AudioDevice
 add_library(DBManager dbmanager.cpp)
 target_link_libraries(DBManager
     PRIVATE     Qt5::Sql)
-
-add_library(Frames frames.cpp)
-target_link_libraries(Frames
-    PRIVATE     Qt5::Core
-)
 
 add_library(OpenGLWidget openglwidget.cpp)
 target_link_libraries(OpenGLWidget
