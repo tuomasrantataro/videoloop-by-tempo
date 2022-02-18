@@ -40,7 +40,7 @@ void RhythmWorker::calculateBPM(const AudioData& audioData, const AudioBufferTyp
     standard::Algorithm* rhythm = factory.create("RhythmExtractor2013",
                                                  "method", "multifeature");
 
-    standard::Algorithm* histo = factory.create("BpmHistogramDescriptors");
+    //standard::Algorithm* histo = factory.create("BpmHistogramDescriptors");
 
     rhythm->input("signal").set(data);
 
@@ -55,31 +55,31 @@ void RhythmWorker::calculateBPM(const AudioData& audioData, const AudioBufferTyp
 
     rhythm->compute();
 
-    essentia::Real firstPeak, firstPeakWeight, firstPeakSpread;
-    essentia::Real secondPeak, secondPeakWeight, secondPeakSpread;
-    std::vector<essentia::Real> hist;
+    //essentia::Real firstPeak, firstPeakWeight, firstPeakSpread;
+    //essentia::Real secondPeak, secondPeakWeight, secondPeakSpread;
+    //std::vector<essentia::Real> hist;
 
-    histo->input("bpmIntervals").set(bpmIntervals);
-    histo->output("firstPeakBPM").set(firstPeak);
-    histo->output("firstPeakWeight").set(firstPeakWeight);
-    histo->output("firstPeakSpread").set(firstPeakSpread);
-    histo->output("secondPeakBPM").set(secondPeak);
-    histo->output("secondPeakWeight").set(secondPeakWeight);
-    histo->output("secondPeakSpread").set(secondPeakSpread);
-    histo->output("histogram").set(hist);
-    histo->compute();
+    //histo->input("bpmIntervals").set(bpmIntervals);
+    //histo->output("firstPeakBPM").set(firstPeak);
+    //histo->output("firstPeakWeight").set(firstPeakWeight);
+    //histo->output("firstPeakSpread").set(firstPeakSpread);
+    //histo->output("secondPeakBPM").set(secondPeak);
+    //histo->output("secondPeakWeight").set(secondPeakWeight);
+    //histo->output("secondPeakSpread").set(secondPeakSpread);
+    //histo->output("histogram").set(hist);
+    //histo->compute();
     //qDebug("first peak: %f, w: %f, s: %f", firstPeak, firstPeakWeight, firstPeakSpread);
     //qDebug("second peak: %f, w: %f, s: %f", secondPeak, secondPeakWeight, secondPeakSpread);
 
     TempoData ret = {ticks,
                      confidence,
                      bpm,
-                     firstPeak,
-                     firstPeakWeight,
-                     firstPeakSpread,
-                     secondPeak,
-                     secondPeakWeight,
-                     secondPeakSpread,
+                     0,//firstPeak,
+                     0,//firstPeakWeight,
+                     0,//firstPeakSpread,
+                     0,//secondPeak,
+                     0,//secondPeakWeight,
+                     0,//secondPeakSpread,
                      bpmEstimates,
                      bpmIntervals};
 

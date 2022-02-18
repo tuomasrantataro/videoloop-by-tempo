@@ -5,11 +5,14 @@
 
 bool validateDirectories();
 
+//Q_DECLARE_LOGGING_CATEGORY("qt.qpa.gl")
+
 int main(int argc, char *argv[])
 {
     QCoreApplication::setAttribute(Qt::AA_ShareOpenGLContexts);
     QCoreApplication::setApplicationVersion("1.1");
     QApplication app(argc, argv);
+    //QLoggingCategory::setFilterRules("qt.qpa.gl=true");
     app.setApplicationName("Video Looper");
     QIcon icon("icon_256px.png");
     app.setWindowIcon(icon);

@@ -33,3 +33,11 @@ target_link_libraries(tst_dbmanager
                 Qt5::Core
                 DBManager
 )
+
+add_executable(tst_frameloader tst_frameloader.cpp)
+target_link_libraries(tst_frameloader
+                Qt5::Test
+                Qt5::Core
+                Qt5::Gui
+                FrameLoader
+)   

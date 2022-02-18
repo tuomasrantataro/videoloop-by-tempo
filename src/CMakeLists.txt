@@ -5,6 +5,8 @@ set(CMAKE_AUTOUIC ON)
 
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
+set(CMAKE_INSTALL_MESSAGE NEVER)
+
 add_compile_definitions(
     $<$<CONFIG:Release>:QT_NO_DEBUG_OUTPUT>)
 
@@ -39,6 +41,28 @@ ExternalProject_Add_Step(essentia
 
 SET(ESSENTIA_DIR ${PROJECT_SOURCE_DIR}/3rd_party/essentia)
 
+ExternalProject_add(assimp
+    GIT_REPOSITORY "https://github.com/assimp/assimp.git"
+    GIT_TAG "v5.2.1"
+    GIT_SHALLOW true
+    GIT_PROGRESS true
+    PREFIX ${PROJECT_SOURCE_DIR}/3rd_party/assimp
+    SOURCE_DIR ${PREFIX}
+    CMAKE_ARGS  -DASSIMP_BUILD_ALL_IMPORTERS_BY_DEFAULT=OFF
+                -DASSIMP_BUILD_OBJ_IMPORTER=ON
+                -DASSIMP_NO_EXPORT=ON
+                -DBUILD_SHARED_LIBS=OFF
+                -DASSIMP_BUILD_ASSIMP_TOOLS=OFF
+                -DASSIMP_BUILD_TESTS=OFF
+                -DCMAKE_INSTALL_PREFIX=${PROJECT_SOURCE_DIR}/3rd_party/assimp
+                -DASSIMP_INSTALL=ON
+                -DASSIMP_INJECT_DEBUG_POSTFIX=0FF
+)
+
+SET(ASSIMP_DIR ${PROJECT_SOURCE_DIR}/3rd_party/assimp)
+
+link_directories(${ASSIMP_DIR})
+
 add_compile_options(-Wall)
 
 add_library(AudioDevice audiodevice.cpp)
@@ -49,9 +73,38 @@ add_library(DBManager dbmanager.cpp)
 target_link_libraries(DBManager
     PRIVATE     Qt5::Sql)
 
-add_library(OpenGLWidget openglwidget.cpp)
-target_link_libraries(OpenGLWidget
-    PUBLIC      Qt5::Widgets)
+add_library(ModelLoader modelloader.cpp)
+add_dependencies(ModelLoader assimp)
+target_include_directories(ModelLoader
+    PUBLIC     ${ASSIMP_DIR}/include
+)
+target_link_directories(ModelLoader
+    INTERFACE     ${ASSIMP_DIR}/lib
+)
+target_link_libraries(ModelLoader
+    PUBLIC      Qt5::Core
+                Qt5::Widgets
+                libassimp.a)
+
+add_library(FrameLoader frameloader.cpp)
+target_link_libraries(FrameLoader
+    PUBLIC      Qt5::Core
+                Qt5::Gui)
+
+add_library(OpenGLWidget2 openglwidget2.cpp)
+target_link_libraries(OpenGLWidget2
+    PUBLIC      Qt5::Core
+                Qt5::Widgets
+)
+
+add_library(GraphicsWidget graphicswidget.cpp)
+target_link_libraries(GraphicsWidget
+    PUBLIC      ModelLoader
+                FrameLoader
+                OpenGLWidget2
+                Qt5::Core
+                Qt5::Widgets
+)
 
 add_library(PulseAudioWatcher pulseaudiowatcher.cpp pulseaudiowatcher.h)
 target_link_libraries(PulseAudioWatcher
@@ -103,19 +156,24 @@ target_link_libraries(MainWindow
     PUBLIC      Qt5::Widgets
                 RhythmExtractor
                 AudioDevice
-                OpenGLWidget
                 Settings
                 Tempo
                 Track
+                OpenGLWidget2
+                ModelLoader
+                GraphicsWidget
 )
 
 add_executable(videoloop-by-tempo main.cpp)
 
-add_dependencies(videoloop-by-tempo MainWindow)
-
+#add_dependencies(videoloop-by-tempo assimp)
+#target_link_directories(videoloop-by-tempo
+#    INTERFACE     ${ASSIMP_DIR}/lib
+#)
 target_link_libraries(videoloop-by-tempo
                 Qt5::Widgets
                 libessentia.a
                 libfftw3f.a
+                #libassimp.a
                 MainWindow
 )

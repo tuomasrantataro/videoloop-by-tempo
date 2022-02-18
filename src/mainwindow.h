@@ -15,11 +15,13 @@
 
 #include "audiodevice.h"
 #include "rhythmextractor.h"
-#include "openglwidget.h"
 #include "types.h"
 #include "settings.h"
 #include "tempo.h"
 #include "track.h"
+
+
+#include "graphicswidget.h"
 
 using namespace MyTypes;
 
@@ -68,7 +70,7 @@ private:
     void initUI();
 
     // UI members
-    OpenGLWidget *m_graphicsWidget;
+    GraphicsWidget *m_graphics;
 
     QVBoxLayout *m_layout;
     QGridLayout *m_videoLayout;
@@ -110,7 +112,8 @@ private:
     RhythmExtractor *m_rhythm;
 
     Tempo *m_tempoHandler;
-    Track *m_trackHandler;    
+    Track *m_trackHandler;  
+
 };
 
 #endif

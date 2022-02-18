@@ -12,19 +12,23 @@ MainWindow::MainWindow(QCommandLineParser *parser) : m_parser(parser)
     qRegisterMetaType<AudioData>("AudioData");
     qRegisterMetaType<AudioBufferType>("AudioBufferType");
     
-
     m_settings = new Settings();
     m_settings->readSettings("settings.JSON");
+
+    m_graphics = new GraphicsWidget(m_settings->getVideoLoopName());
+    m_graphics->setParent(this);
+    connect(m_graphics, &GraphicsWidget::toggleFullScreen, this, &MainWindow::setVideoFullScreen);
+    //connect(m_graphics, &GraphicsWidget::initDone, [=](){ m_graphics->setVideoLoop(m_settings->getVideoLoopName()); });
 
     m_tempoHandler = new Tempo(this);
     connect(m_tempoHandler, &Tempo::tempoChanged, this, &MainWindow::updateTempo);
     connect(m_tempoHandler, &Tempo::tempoLowerLimitChanged, this, &MainWindow::setLowerTempoLimit);
     connect(m_tempoHandler, &Tempo::tempoUpperLimitChanged, this, &MainWindow::setUpperTempoLimit);
 
-    m_graphicsWidget = new OpenGLWidget(m_settings->getVideoLoopName());
-    connect(m_graphicsWidget, &OpenGLWidget::toggleFullScreen, this, &MainWindow::setVideoFullScreen);
-    connect(m_graphicsWidget, &OpenGLWidget::initReady, this, &MainWindow::setAddReversedFrames);
-    connect(m_graphicsWidget, &OpenGLWidget::spacePressed, this, &MainWindow::toggleManualTempo);
+    //m_graphicsWidget = new OpenGLWidget(m_settings->getVideoLoopName());
+    //connect(m_graphicsWidget, &OpenGLWidget::toggleFullScreen, this, &MainWindow::setVideoFullScreen);
+    //connect(m_graphicsWidget, &OpenGLWidget::initReady, this, &MainWindow::setAddReversedFrames);
+    //connect(m_graphicsWidget, &OpenGLWidget::spacePressed, this, &MainWindow::toggleManualTempo);
 
     // Rhythm data calculation
     m_rhythm = new RhythmExtractor(this);
@@ -57,7 +61,8 @@ MainWindow::~MainWindow()
 {
     delete m_settings;
 
-    delete m_graphicsWidget;
+    //delete m_graphicsWidget;
+    m_graphics->deleteLater();
 }
 
 void MainWindow::initUI()
@@ -213,11 +218,12 @@ void MainWindow::initUI()
     screenLayout->addWidget(m_screenSelect, 2);
 
     m_reverseFramesCheckBox = new QCheckBox(tr("Add reversed frames to loop"));
+    connect(m_reverseFramesCheckBox, &QCheckBox::toggled, this, &MainWindow::setAddReversedFrames);
     m_reverseFramesCheckBox->setChecked(m_settings->getCurrentLoopAddReversedFrames());
-    connect(m_reverseFramesCheckBox, &QCheckBox::clicked, this, &MainWindow::setAddReversedFrames);
 
     m_loopSelect = new QComboBox;
-    QDir directory("frames");
+
+    QDir directory("./assets/frames");
     QStringList videoLoops = directory.entryList(QDir::NoDotAndDotDot | QDir::Dirs);
     for (auto it = videoLoops.begin(); it != videoLoops.end(); it++) {
         m_loopSelect->addItem(*it);
@@ -244,10 +250,13 @@ void MainWindow::initUI()
     m_videoLayout->addWidget(m_screenSelect, 4, 1, 1, 2);
     m_videoGroup->setLayout(m_videoLayout);
 
-
     // Top level Layout
-    m_layout = new QVBoxLayout;
-    m_layout->addWidget(m_graphicsWidget, 5);
+    m_layout = new QVBoxLayout(this);
+    //m_layout->addWidget(m_graphicsWidget, 5);
+    m_layout->addWidget(m_graphics, 5);
+    //m_layout->addWidget(m_oglw2, 5);
+    //m_layout->addWidget(m_graphicsWidget, 5);
+    //m_layout->addStretch(1);
     m_layout->addLayout(tempoControls, 1);
     m_layout->addWidget(m_audioGroup, 1);
     m_layout->addWidget(m_videoGroup, 1);
@@ -263,7 +272,9 @@ void MainWindow::updateTempo(double tempo)
 {
     double multiplier = m_settings->getCurrentLoopTempoMultiplier();
 
-    m_graphicsWidget->setBpm(tempo*multiplier);
+    //m_graphicsWidget->setBpm(tempo*multiplier);
+    //qDebug() << "set tempo to" << tempo*multiplier;
+    m_graphics->setTempo(tempo*multiplier);
     m_setBpmLine->setText(QString::number(tempo, 'f', 1));
 }
 
@@ -340,10 +351,10 @@ void MainWindow::setUpperTempoLimit(double limit)
 
 void MainWindow::setVideoFullScreen()
 {
-    if (m_graphicsWidget->windowState() == Qt::WindowFullScreen) {
-        m_graphicsWidget->setWindowState(Qt::WindowNoState);
-        m_graphicsWidget->setParent(this);
-        m_layout->insertWidget(0, m_graphicsWidget, 5);
+    if (m_graphics->windowState() == Qt::WindowFullScreen) {
+        m_graphics->setWindowState(Qt::WindowNoState);
+        m_graphics->setParent(this);
+        m_layout->insertWidget(0, m_graphics, 5);
         if (!m_settings->getShowTempoControls()) {
             show();
         } else {
@@ -354,15 +365,15 @@ void MainWindow::setVideoFullScreen()
             m_layout->addWidget(m_videoGroup, 1);
         }
     } else {
-        m_graphicsWidget->setParent(nullptr);
+        m_graphics->setParent(nullptr);
         m_screens = qApp->screens();
         if (m_settings->getScreenNumber() > m_screens.size()-1) {
             //m_screenNumber = 0;
             m_settings->setScreenNumber(0);
         }
         QRect screen = m_screens[m_settings->getScreenNumber()]->geometry();
-        m_graphicsWidget->setGeometry(screen);
-        m_graphicsWidget->showFullScreen();
+        m_graphics->setGeometry(screen);
+        m_graphics->showFullScreen();
         if (!m_settings->getShowTempoControls()) {
             hide();
         } else {
@@ -403,13 +414,15 @@ void MainWindow::setAddReversedFrames()
     bool addReversedFrames = m_reverseFramesCheckBox->isChecked();
 
     m_settings->setCurrentLoopAddReversedFrames(addReversedFrames);
-    m_graphicsWidget->setAddReversedFrames(addReversedFrames);
+    m_graphics->addReversedFrames(addReversedFrames);
+    //m_graphicsWidget->setAddReversedFrames(addReversedFrames);
 }
 
 void MainWindow::setVideoLoop(QString loopName)
 {
     m_settings->setVideoLoopName(loopName);
-    m_graphicsWidget->setFrameFolder(loopName);
+    //qDebug() << loopName;
+    m_graphics->setVideoLoop(loopName);
 
     double multiplier = m_settings->getCurrentLoopTempoMultiplier();
     m_tempoMultiplierSlider->setValue(log2(multiplier));
