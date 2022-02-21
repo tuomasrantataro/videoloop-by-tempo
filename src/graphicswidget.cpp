@@ -15,11 +15,8 @@ GraphicsWidget::GraphicsWidget(QString videoLoop)
     // 6. load rest of the models
     // 7. update
 
-    qDebug("loading models");
     getAllModels();
-    qDebug("loading video loops");
     getAllLoops();
-    qDebug("loading video loops done");
     
 
     // Create widget and layout showing the 3D graphics
@@ -27,27 +24,16 @@ GraphicsWidget::GraphicsWidget(QString videoLoop)
     m_openGLWidget = new OpenGLWidget2(maxFrames);
     m_openGLWidget->setParent(this);
     ModelData first = m_models["square.obj"];
-    qDebug() << "setting 3d model";
     m_openGLWidget->setBufferData(first.vertices, first.normals, first.textureUV, first.indices);
     m_openGLWidget->setNodeData(first.rootNode);
     m_openGLWidget->setDrawSquare(true);
 
-
-    qDebug() << "setting frames";
     if (m_frameDict.contains(videoLoop)) {
         setVideoLoop(videoLoop);
-        qDebug() << "videoloop found" << videoLoop;
     }
     else {
         setVideoLoop(m_frameDict.firstKey());
-        qDebug() << "firstkey";
     }
-    //m_currentFrames = m_frameDict.first();
-    
-    //m_frameCount = m_currentFrames.size();
-
-    //setVideoLoop(m_frameDict.firstKey());
-
 
     m_layout = new QVBoxLayout(this);
     m_layout->setContentsMargins(0, 0, 0, 0);
@@ -61,7 +47,6 @@ GraphicsWidget::GraphicsWidget(QString videoLoop)
     connect(m_timer, &QTimer::timeout, this, &GraphicsWidget::nextFrame);
 
     connect(m_openGLWidget, &OpenGLWidget2::initDone, this, &GraphicsWidget::initDone);
-
 }
 
 GraphicsWidget::~GraphicsWidget()
@@ -85,7 +70,6 @@ void GraphicsWidget::keyPressEvent(QKeyEvent *e)
         emit toggleFullScreen();
     }
 }
-
 
 void GraphicsWidget::calculateFrameIndex()
 {
@@ -124,10 +108,8 @@ void GraphicsWidget::setTempo(double tempo)
 
 void GraphicsWidget::setVideoLoop(QString loopName)
 {
-    qDebug() << "setVideoLoop" << loopName;
-
     if (!m_frameDict.contains(loopName)) {
-        qDebug("loop not found.");
+        qDebug() << "loop not found:" << loopName;
         return;
     }
 
@@ -164,9 +146,6 @@ void GraphicsWidget::getAllLoops()
 
         m_frameLoader->loadFrames(folder, &frames);
 
-        //m_modelLoader->loadFrames(path);
-        //m_modelLoader->getFrameData(&frames);
-
         m_frameDict.insert(folder, frames);
     }
 
@@ -177,7 +156,7 @@ void GraphicsWidget::getAllModels()
     QString modelFolderPath = "./assets/models/";
     QDir modelDir(modelFolderPath);
 
-    QStringList models = modelDir.entryList(QDir::Files); //QDir::NoDotAndDotDot | QDir::Dirs);
+    QStringList models = modelDir.entryList(QDir::Files);
 
 
     for (QString modelName : models) {
@@ -185,23 +164,13 @@ void GraphicsWidget::getAllModels()
 
         QString path = modelFolderPath + modelName;
 
-        qDebug() << "path" << path;
+        model = m_modelLoader->getModelData(path);
 
-        m_modelLoader->load3DModel(path);
-
-        m_modelLoader->getBufferData(&model.vertices, &model.normals, &model.indices);
-        m_modelLoader->getTextureData(&model.textureUV, &model.tangents, &model.bitangents);
-
-        model.rootNode = m_modelLoader->getNodeData();
-
-        qDebug() << modelName << model.vertices.size() << model.normals.size() << model.indices.size() << model.textureUV.size();
         if (model.textureUV.size() == 0) {
             qDebug() << "no textureUV map for" << modelName << ", skipping";
             continue;
         }
-        else {
-             qDebug() << model.textureUV[0].size();
-        }
+
         m_models.insert(modelName, model);
     }
 

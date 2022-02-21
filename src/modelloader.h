@@ -45,35 +45,38 @@ struct Node
     QVector<Node> nodes;
 };
 
-typedef struct VideoFrames2 {
-    QString name;
-    QList<QImage> frames;
-    double aspectRatio;
-    std::vector<int> frameIndexes;
-} VideoFrames2;
+struct ModelData {
+    QVector<float> vertices;
+    QVector<float> normals;
+    QVector<unsigned int> indices;
 
+    QVector<QVector<float> > textureUV; // multiple channels
+    QVector<unsigned int > textureUVComponents; // multiple channels
+
+    QSharedPointer<Node> rootNode;
+};
 class ModelLoader
 {
 public:
-    enum PathType {
-        RelativePath,
-        AbsolutePath
-    };
 
     ModelLoader(bool transformToUnitCoordinates = true);
+
+    ModelData getModelData(QString filePath);
+
+private:
+
     bool load3DModel(QString filePath);
     void getBufferData( QVector<float> *vertices, QVector<float> *normals,
                         QVector<unsigned int> *indices);
 
-    void getTextureData( QVector<QVector<float> > *textureUV,                   // For texture mapping
-                         QVector<float> *tangents, QVector<float> *bitangents);// For normal mapping
+    void getTextureData( QVector<QVector<float>> *textureUV);
 
     QSharedPointer<Node> getNodeData() { return m_rootNode; }
 
     // Texture information
     int numUVChannels() { return m_textureUV.size(); }
     int numUVComponents(int channel) { return m_textureUVComponents.at(channel); }
-private:
+
     QSharedPointer<MaterialInfo> processMaterial(aiMaterial *mater);
     QSharedPointer<Mesh> processMesh(aiMesh *mesh);
     void processNode(const aiScene *scene, aiNode *node, Node *parentNode, Node &newNode);
@@ -86,8 +89,6 @@ private:
     QVector<unsigned int> m_indices;
 
     QVector<QVector<float> > m_textureUV; // multiple channels
-    QVector<float> m_tangents;
-    QVector<float> m_bitangents;
     QVector<unsigned int > m_textureUVComponents; // multiple channels
 
     QVector<QSharedPointer<MaterialInfo> > m_materials;

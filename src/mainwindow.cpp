@@ -18,17 +18,12 @@ MainWindow::MainWindow(QCommandLineParser *parser) : m_parser(parser)
     m_graphics = new GraphicsWidget(m_settings->getVideoLoopName());
     m_graphics->setParent(this);
     connect(m_graphics, &GraphicsWidget::toggleFullScreen, this, &MainWindow::setVideoFullScreen);
-    //connect(m_graphics, &GraphicsWidget::initDone, [=](){ m_graphics->setVideoLoop(m_settings->getVideoLoopName()); });
 
     m_tempoHandler = new Tempo(this);
     connect(m_tempoHandler, &Tempo::tempoChanged, this, &MainWindow::updateTempo);
+    connect(m_tempoHandler, &Tempo::tempoChanged, [=](float newTempo) { m_currentTempo = newTempo; });
     connect(m_tempoHandler, &Tempo::tempoLowerLimitChanged, this, &MainWindow::setLowerTempoLimit);
     connect(m_tempoHandler, &Tempo::tempoUpperLimitChanged, this, &MainWindow::setUpperTempoLimit);
-
-    //m_graphicsWidget = new OpenGLWidget(m_settings->getVideoLoopName());
-    //connect(m_graphicsWidget, &OpenGLWidget::toggleFullScreen, this, &MainWindow::setVideoFullScreen);
-    //connect(m_graphicsWidget, &OpenGLWidget::initReady, this, &MainWindow::setAddReversedFrames);
-    //connect(m_graphicsWidget, &OpenGLWidget::spacePressed, this, &MainWindow::toggleManualTempo);
 
     // Rhythm data calculation
     m_rhythm = new RhythmExtractor(this);
@@ -252,11 +247,7 @@ void MainWindow::initUI()
 
     // Top level Layout
     m_layout = new QVBoxLayout(this);
-    //m_layout->addWidget(m_graphicsWidget, 5);
     m_layout->addWidget(m_graphics, 5);
-    //m_layout->addWidget(m_oglw2, 5);
-    //m_layout->addWidget(m_graphicsWidget, 5);
-    //m_layout->addStretch(1);
     m_layout->addLayout(tempoControls, 1);
     m_layout->addWidget(m_audioGroup, 1);
     m_layout->addWidget(m_videoGroup, 1);
@@ -272,8 +263,6 @@ void MainWindow::updateTempo(double tempo)
 {
     double multiplier = m_settings->getCurrentLoopTempoMultiplier();
 
-    //m_graphicsWidget->setBpm(tempo*multiplier);
-    //qDebug() << "set tempo to" << tempo*multiplier;
     m_graphics->setTempo(tempo*multiplier);
     m_setBpmLine->setText(QString::number(tempo, 'f', 1));
 }
@@ -368,7 +357,6 @@ void MainWindow::setVideoFullScreen()
         m_graphics->setParent(nullptr);
         m_screens = qApp->screens();
         if (m_settings->getScreenNumber() > m_screens.size()-1) {
-            //m_screenNumber = 0;
             m_settings->setScreenNumber(0);
         }
         QRect screen = m_screens[m_settings->getScreenNumber()]->geometry();
@@ -397,6 +385,7 @@ void MainWindow::setTempoMultiplier(int value)
     m_settings->setCurrentLoopTempoMultiplier(multiplier);
     QString multiplierStr = QString::number(multiplier, 'f', 2);
     m_tempoMultiplierLabel->setText("Tempo multiplier " + multiplierStr);
+    updateTempo(m_currentTempo);
 }
 
 void MainWindow::setStartFullScreen()
@@ -415,13 +404,11 @@ void MainWindow::setAddReversedFrames()
 
     m_settings->setCurrentLoopAddReversedFrames(addReversedFrames);
     m_graphics->addReversedFrames(addReversedFrames);
-    //m_graphicsWidget->setAddReversedFrames(addReversedFrames);
 }
 
 void MainWindow::setVideoLoop(QString loopName)
 {
     m_settings->setVideoLoopName(loopName);
-    //qDebug() << loopName;
     m_graphics->setVideoLoop(loopName);
 
     double multiplier = m_settings->getCurrentLoopTempoMultiplier();

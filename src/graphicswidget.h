@@ -10,20 +10,19 @@
 #include "frameloader.h"
 #include "openglwidget2.h"
 
+/*
 struct ModelData {
     QVector<float> vertices;
     QVector<float> normals;
     QVector<unsigned int> indices;
 
     QVector<QVector<float> > textureUV; // multiple channels
-    QVector<float> tangents;
-    QVector<float> bitangents;
     QVector<unsigned int > textureUVComponents; // multiple channels
 
     QVector<QSharedPointer<MaterialInfo> > materials;
     QVector<QSharedPointer<Mesh> > meshes;
     QSharedPointer<Node> rootNode;
-};
+};*/
 
 class GraphicsWidget : public QWidget
 {
@@ -59,23 +58,19 @@ private:
     QVector<unsigned int> m_indices;
 
     QVector<QVector<float> > m_textureUV; // multiple channels
-    QVector<float> m_tangents;
-    QVector<float> m_bitangents;
+    //QVector<float> m_tangents;
+    //QVector<float> m_bitangents;
     QVector<unsigned int > m_textureUVComponents; // multiple channels
 
     QVector<QSharedPointer<MaterialInfo> > m_materials;
     QVector<QSharedPointer<Mesh> > m_meshes;
     QSharedPointer<Node> m_rootNode;
+
+    QMap<QString, ModelData> m_models;
     // end of 3d model
 
     QVector<QImage> m_currentFrames;
-
     QMap<QString, QVector<QImage>> m_frameDict;
-
-    QMap<QString, ModelData> m_models;
-
-    QVBoxLayout *m_layout;
-
 
     OpenGLWidget2* m_openGLWidget;
 
@@ -88,7 +83,6 @@ private:
     int m_currentFrameIndex = 0;
 
     int m_frameCount = 0;
-
     bool m_addReversedFrames = false;
 
     void calculateFrameIndex();
@@ -97,8 +91,9 @@ private:
     void getAllLoops();
     void getAllModels();
 
+    QVBoxLayout *m_layout;
 
-    int m_counter = 0;
+    //int m_counter = 0;
 };
 
 

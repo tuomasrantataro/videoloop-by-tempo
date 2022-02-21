@@ -99,6 +99,8 @@ private:
     };
 
     bool m_drawSquare = true;
+
+    int m_counter = 0;
 };
 
 #endif

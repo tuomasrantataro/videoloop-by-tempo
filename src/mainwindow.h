@@ -114,6 +114,8 @@ private:
     Tempo *m_tempoHandler;
     Track *m_trackHandler;  
 
+    double m_currentTempo;
+
 };
 
 #endif

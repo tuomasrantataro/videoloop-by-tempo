@@ -5,14 +5,11 @@
 
 bool validateDirectories();
 
-//Q_DECLARE_LOGGING_CATEGORY("qt.qpa.gl")
-
 int main(int argc, char *argv[])
 {
     QCoreApplication::setAttribute(Qt::AA_ShareOpenGLContexts);
     QCoreApplication::setApplicationVersion("1.1");
     QApplication app(argc, argv);
-    //QLoggingCategory::setFilterRules("qt.qpa.gl=true");
     app.setApplicationName("Video Looper");
     QIcon icon("icon_256px.png");
     app.setWindowIcon(icon);
@@ -37,24 +34,22 @@ int main(int argc, char *argv[])
     return app.exec();
 }
 
-
-
 bool validateDirectories()
 {
     bool ret = true;
-    if (!QDir("frames").exists()) {
-        qInfo("\nERROR: frames folder not found.\n");
+    if (!QDir("./assets/frames").exists()) {
+        qInfo("\nERROR: ./assets/frames folder not found.\n");
         ret = false;
-    } else if (QDir("frames").isEmpty()) {
+    } else if (QDir("./assets/frames").isEmpty()) {
         qInfo("\nERROR: frames folder is empty.\n");
         ret = false;
     } else {
         // check that none of the folders is empty
-        QDir directory("frames");
+        QDir directory("./assets/frames");
         QStringList videoLoops = directory.entryList(QDir::NoDotAndDotDot | QDir::Dirs);
 
         for (auto it = videoLoops.begin(); it != videoLoops.end(); it++) {
-            QString path = "frames/" + *it + "/";
+            QString path = "./assets/frames/" + *it + "/";
             QDir frameDir = QDir(path);
             QStringList frames = frameDir.entryList(QStringList() << "*.jpg" << "*.JPG" << "*.png" << "*.PNG", QDir::Files);
             if (frames.isEmpty()) {
@@ -71,11 +66,11 @@ bool validateDirectories()
         qInfo("Please run the program in a directory which contains the loop frames.\n"
             "The directory structure should be:\n\t"
             "./videoloop-by-tempo (the executable)\n\t"
-            "./frames/video1/frame1.jpg\n\t"
-            "./frames/video1/frame2.jpg\n\t"
-            "./frames/video1/frame....png\n\t"
-            "./frames/video2/frame1.png\n\t"
-            "./frames/video2/frame....png\n"
+            "./assets/frames/video1/frame1.jpg\n\t"
+            "./assets/frames/video1/frame2.jpg\n\t"
+            "./assets/frames/video1/frame....png\n\t"
+            "./assets/frames/video2/frame1.png\n\t"
+            "./assets/frames/video2/frame....png\n"
             
             "Current working directory is:\n\t%s\n",
             qPrintable(QDir(".").absolutePath())

@@ -8,7 +8,8 @@ OpenGLWidget2::OpenGLWidget2(int maxFrames) : m_maxFrames(maxFrames)
 
 OpenGLWidget2::~OpenGLWidget2()
 {
-
+    m_texture->destroy();
+    delete m_texture;
 }
 
 void OpenGLWidget2::initializeGL()
@@ -16,7 +17,6 @@ void OpenGLWidget2::initializeGL()
     initializeOpenGLFunctions();
 
     createShaderProgram("./assets/shaders/ads_fragment.vert", "./assets/shaders/ads_fragment.frag");
-
     createBuffers();
     createAttributes();
     setupLightingAndMatrices();
@@ -153,7 +153,7 @@ void OpenGLWidget2::setupLightingAndMatrices()
     m_lightInfo.Intensity = QVector3D( 1.0f, 1.0f, 1.0f);
 
     m_materialInfo.Ambient = QVector3D( 0.1f, 0.05f, 0.0f );
-    m_materialInfo.Diffuse = QVector3D( .9f, .6f, .2f );
+    m_materialInfo.Diffuse = QVector3D( .9f, .9f, .9f );
     m_materialInfo.Specular = QVector3D( .2f, .2f, .2f );
     m_materialInfo.Shininess = 50.0f;
 }
@@ -163,8 +163,6 @@ void OpenGLWidget2::resizeGL(int w, int h)
     int side = qMin(w, h);
     glViewport((w - side) / 2, (h - side) / 2, side, side);
     m_viewPortAspectRatio = float(w)/float(h);
-
-    qDebug() << "w" << w << "h" << h;
 
     m_projection.setToIdentity();
     m_projection.perspective(60.0f, (float)w/h, .3f, 1000);
@@ -184,8 +182,9 @@ void OpenGLWidget2::paintGL()
     // Set the model matrix
     // Translate and rotate it a bit to get a better view of the model
     m_model.setToIdentity();
-    m_model.translate(-0.2f, 0.2f, 0.0f);
-    m_model.rotate(90.0f, 1.0f, 0.0f, 0.0f);
+    m_model.translate(-0.0f, 0.0f, -0.5f);
+    m_model.rotate(float(m_counter++), 0.0f, 1.0f, 1.0f);
+    m_model.translate(-0.3f, 0.0f, -0.0f);
 
     // Set shader uniforms for light information
     if (m_drawSquare) {
@@ -257,7 +256,7 @@ void OpenGLWidget2::drawSquare(const Node *node, QMatrix4x4 objectMatrix)
     m.translate(1.5 - 1/horizontalScaling, 1.5 - 1/verticalScaling, 0.0f);
     QMatrix4x4 modelMatrix = m * objectMatrix;
     QMatrix4x4 modelViewMatrix;
-    modelViewMatrix.ortho(-0, horizontalScaling, -0, verticalScaling, -1.0f, 1.0f);// = modelMatrix;
+    modelViewMatrix.ortho(-0, horizontalScaling, -0, verticalScaling, -1.0f, 1.0f);
     QMatrix3x3 normalMatrix = modelMatrix.normalMatrix();
     QMatrix4x4 mvp = modelMatrix * modelViewMatrix;
 
@@ -291,16 +290,16 @@ void OpenGLWidget2::initTextures()
 {
     m_shaderProgram.setUniformValue("layer", 0);
 
+    // TODO: If textures not found, create image with text indicating it
     if (m_frames.size() == 0) {
         qDebug() << "No frames, cannot initialize textures";
         return;
     }
     if (m_frames[0].isNull()) {
         qDebug() << "failed to load texture";
+        return;
     } 
-    else {
-        qDebug() << "loaded texture";
-    }
+
     m_texture = new QOpenGLTexture(QOpenGLTexture::Target2DArray);
     m_texture->setFormat(QOpenGLTexture::RGBA8_UNorm);
     m_texture->setMipLevels(1);
@@ -320,7 +319,6 @@ void OpenGLWidget2::initTextures()
         m_texture->setData(0, i, QOpenGLTexture::RGBA, QOpenGLTexture::UInt8, data);
     }
 }
-
 
 void OpenGLWidget2::setFrameIndex(int idx)
 {

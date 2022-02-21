@@ -1,8 +1,12 @@
 {
-    "audio_device": "alsa_output.pci-0000_01_00.1.hdmi-stereo.monitor",
+    "audio_device": "alsa_output.pci-0000_00_1f.3.analog-stereo.monitor",
     "confidence_threshold": 3,
     "limit_tempo": false,
     "loop_settings": {
+        "banana": {
+            "add_reversed_frames": false,
+            "tempo_multiplier": 0.5
+        },
         "gandalf": {
             "add_reversed_frames": true,
             "tempo_multiplier": 1
@@ -22,7 +26,7 @@
     "screen": 0,
     "show_tempo_controls": true,
     "start_as_fullscreen": false,
-    "tempo_lower_limit": 70,
-    "tempo_upper_limit": 155,
+    "tempo_lower_limit": 40,
+    "tempo_upper_limit": 90,
     "video_name": "gandalf"
 }
