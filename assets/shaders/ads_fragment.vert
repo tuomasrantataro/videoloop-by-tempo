@@ -1,16 +1,16 @@
-#version 420 core
+#version 130
 
-layout (location = 0) in vec3 vertexPosition;
-layout (location = 1) in vec3 vertexNormal;
-layout (location = 2) in vec2 a_TexCoord;
+in vec3 vertexPosition;
+in vec3 vertexNormal;
+in vec2 a_TexCoord;
 
 uniform mat4 MV;
 uniform mat3 N;
 uniform mat4 MVP;
 
-layout (location = 0) out vec3 normal;
-layout (location = 1) out vec3 position;
-layout (location = 2) out vec2 texCoord;
+out vec3 normal;
+out vec3 position;
+out vec2 texCoord;
 
 void main()
 {

@@ -1,4 +1,4 @@
-#version 430
+#version 130
 
 // Light information
 uniform vec4 lightPosition;
@@ -13,11 +13,11 @@ uniform int layer;
 
 uniform sampler2DArray texture1;
 
-layout (location = 0) in vec3 normal;
-layout (location = 1) in vec3 position;
-layout (location = 2) in vec2 texCoord;
+in vec3 normal;
+in vec3 position;
+in vec2 texCoord;
 
-layout (location = 0) out vec4 fragColor;
+out vec4 fragColor;
 
 vec3 adsModel(const in vec3 norm)
 {
@@ -46,7 +46,7 @@ vec3 adsModel(const in vec3 norm)
 
 void main()
 {
-    uint l = layer;
+    int l = layer;
     //fragColor = vec4(adsModel(normalize(normal)), 1.0);
     vec3 color = texture(texture1,vec3(texCoord, l)).xyz * adsModel(normalize(normal));
     fragColor = vec4(color, 1.0f);

@@ -4,14 +4,14 @@
 #include <QOpenGLShaderProgram>
 #include <QOpenGLBuffer>
 #include <QOpenGLVertexArrayObject>
-#include <QOpenGLFunctions_4_3_Core>
+#include <QOpenGLFunctions>
 #include <QOpenGLWidget>
 #include <QOpenGLTexture>
 #include <QtGui>
 
 #include "modelloader.h"   // for types
 
-class OpenGLWidget2 : public QOpenGLWidget, protected QOpenGLFunctions_4_3_Core
+class OpenGLWidget2 : public QOpenGLWidget, protected QOpenGLFunctions
 {
     Q_OBJECT
 public:
