@@ -364,3 +364,40 @@ void OpenGLWidget2::setFrames(const QVector<QImage>& frames)
     }
     m_frameCount = m_frames.size();
 }
+
+void OpenGLWidget2::replaceCurrentFrames(const QVector<QImage>& frames)
+{
+    qDebug() << "replacecurrentframes";
+    if (m_initDone) {
+        makeCurrent();
+        m_frames = frames;
+        
+        QOpenGLTexture* newTexture = new QOpenGLTexture(QOpenGLTexture::Target2DArray);
+        newTexture->setFormat(QOpenGLTexture::RGBA8_UNorm);
+        newTexture->setMipLevels(1);
+        newTexture->setLayers(m_maxFrames);
+        newTexture->setSize(m_frames[0].width(), m_frames[0].height());
+
+        newTexture->setMinificationFilter(QOpenGLTexture::Nearest);
+        newTexture->setMagnificationFilter(QOpenGLTexture::Nearest);
+        newTexture->setWrapMode(QOpenGLTexture::ClampToBorder);
+        newTexture->allocateStorage();
+        newTexture->bind();
+
+        m_frameAspectRatio = float(m_frames[0].width()) / float(m_frames[0].height());
+
+        for (int i = 0; i < m_frames.size(); i++){
+            const uchar* data = m_frames.at(i).bits();
+            newTexture->setData(0, i, QOpenGLTexture::RGBA, QOpenGLTexture::UInt8, data);
+        }
+
+        auto old = m_texture;
+        m_texture = newTexture;
+        old->destroy();
+        delete old;
+    }
+    else {
+        m_frames = frames;
+    }
+    m_frameCount = m_frames.size();
+}

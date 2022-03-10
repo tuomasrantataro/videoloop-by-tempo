@@ -229,6 +229,8 @@ void MainWindow::initUI()
         m_settings->setVideoLoopName(videoLoops[0]);
     }
     connect(m_loopSelect, &QComboBox::currentTextChanged, this, &MainWindow::setVideoLoop);
+    //connect(m_loopSelect, &QComboBox::textHighlighted, m_graphics, &GraphicsWidget::loadFrames);
+    connect(m_loopSelect, &QComboBox::textHighlighted, m_graphics, &GraphicsWidget::loadFutureFrames);
 
     QLabel *loopLabel = new QLabel(tr("Video:"));
     QHBoxLayout *loopLayout = new QHBoxLayout;

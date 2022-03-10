@@ -10,20 +10,6 @@
 #include "frameloader.h"
 #include "openglwidget2.h"
 
-/*
-struct ModelData {
-    QVector<float> vertices;
-    QVector<float> normals;
-    QVector<unsigned int> indices;
-
-    QVector<QVector<float> > textureUV; // multiple channels
-    QVector<unsigned int > textureUVComponents; // multiple channels
-
-    QVector<QSharedPointer<MaterialInfo> > materials;
-    QVector<QSharedPointer<Mesh> > meshes;
-    QSharedPointer<Node> rootNode;
-};*/
-
 class GraphicsWidget : public QWidget
 {
     Q_OBJECT
@@ -37,6 +23,8 @@ public slots:
     void setTempo(double tempo);
     void addReversedFrames(bool set);
     void setVideoLoop(QString loopName);
+    void loadFrames(QString loopName);
+    void loadFutureFrames(QString loopName);
 
 signals:
     void toggleFullScreen();
@@ -46,6 +34,12 @@ signals:
 protected:
     void mouseDoubleClickEvent(QMouseEvent *e);
     void keyPressEvent(QKeyEvent *e);
+
+private:
+    void loadNFrames(QString loopName, int amount = 0);
+
+private slots:
+    void setFutureFrames(QString folderName, QVector<QImage> futureFrames);
 
 private:
     ModelLoader* m_modelLoader;
@@ -58,8 +52,6 @@ private:
     QVector<unsigned int> m_indices;
 
     QVector<QVector<float> > m_textureUV; // multiple channels
-    //QVector<float> m_tangents;
-    //QVector<float> m_bitangents;
     QVector<unsigned int > m_textureUVComponents; // multiple channels
 
     QVector<QSharedPointer<MaterialInfo> > m_materials;
@@ -70,7 +62,6 @@ private:
     // end of 3d model
 
     QVector<QImage> m_currentFrames;
-    QMap<QString, QVector<QImage>> m_frameDict;
 
     OpenGLWidget2* m_openGLWidget;
 
@@ -83,17 +74,23 @@ private:
     int m_currentFrameIndex = 0;
 
     int m_frameCount = 0;
+    int m_totalFrameCount = 0;
     bool m_addReversedFrames = false;
 
     void calculateFrameIndex();
     void nextFrame();
 
-    void getAllLoops();
     void getAllModels();
 
     QVBoxLayout *m_layout;
 
-    //int m_counter = 0;
+    QString m_currentLoopName = "";
+
+    QVector<QImage> m_futureFrames;
+    int m_futureFrameCount = 0;
+    bool m_futureDone = false;
+
+    int m_frameOffset = 0;
 };
 
 

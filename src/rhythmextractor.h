@@ -1,9 +1,7 @@
 #ifndef RHYTHMEXTRACTOR_H
 #define RHYTHMEXTRACTOR_H
 
-#include <QMutex>
 #include <QThread>
-#include <QWaitCondition>
 #include <vector>
 
 #include "types.h"

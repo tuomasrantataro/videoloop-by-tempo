@@ -25,6 +25,7 @@ public:
                         QVector<QVector<float>>& textureUV,
                         QVector<unsigned int>& indices);
     void setFrames(const QVector<QImage>& frames);
+    void replaceCurrentFrames(const QVector<QImage>& frames);
     void setNodeData(QSharedPointer<Node> rootNode);
     void setDrawSquare(bool drawSquare) { m_drawSquare = drawSquare; };
 
