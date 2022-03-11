@@ -55,9 +55,6 @@ MainWindow::MainWindow(QCommandLineParser *parser) : m_parser(parser)
 MainWindow::~MainWindow()
 {
     delete m_settings;
-
-    //delete m_graphicsWidget;
-    m_graphics->deleteLater();
 }
 
 void MainWindow::initUI()
@@ -433,6 +430,8 @@ void MainWindow::closeEvent(QCloseEvent *e)
     m_settings->setLimitTempo(m_limitCheckBox->isChecked());
     m_settings->setScreenNumber(m_screenSelect->currentIndex());
     m_settings->writeSettings("settings.JSON");
+
+    m_graphics->deleteLater();
 }
 
 void MainWindow::receiveBPMCalculationResult(const TempoData& data, MyTypes::AudioBufferType type)

@@ -25,7 +25,8 @@ public:
                         QVector<QVector<float>>& textureUV,
                         QVector<unsigned int>& indices);
     void setFrames(const QVector<QImage>& frames);
-    void replaceCurrentFrames(const QVector<QImage>& frames);
+    void replaceCurrentFrames();
+    void setFutureTextures(const QVector<QImage>& frames);
     void setNodeData(QSharedPointer<Node> rootNode);
     void setDrawSquare(bool drawSquare) { m_drawSquare = drawSquare; };
 
@@ -102,6 +103,8 @@ private:
     bool m_drawSquare = true;
 
     int m_counter = 0;
+
+    QOpenGLTexture *m_futureTexture = nullptr;
 };
 
 #endif
