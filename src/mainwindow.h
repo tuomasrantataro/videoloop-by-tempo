@@ -19,6 +19,7 @@
 #include "settings.h"
 #include "tempo.h"
 #include "track.h"
+#include "screensaverinhibitor.h"
 
 
 #include "graphicswidget.h"
@@ -115,6 +116,8 @@ private:
     Track *m_trackHandler;  
 
     double m_currentTempo;
+
+    ScreenSaverInhibitor *m_screenSaverInhibitor;
 
 };
 

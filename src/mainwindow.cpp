@@ -44,6 +44,8 @@ MainWindow::MainWindow(QCommandLineParser *parser) : m_parser(parser)
     connect(m_trackHandler, &Track::disableAutoTempo, m_tempoHandler, &Tempo::disableAutomaticTempo);
     connect(m_trackHandler, &Track::trackTempoFound, m_tempoHandler, &Tempo::setTempoSmooth);
 
+    m_screenSaverInhibitor = new ScreenSaverInhibitor();
+
     initUI();
 
     this->show();
@@ -55,6 +57,7 @@ MainWindow::MainWindow(QCommandLineParser *parser) : m_parser(parser)
 MainWindow::~MainWindow()
 {
     delete m_settings;
+    delete m_screenSaverInhibitor;
 }
 
 void MainWindow::initUI()
@@ -352,6 +355,7 @@ void MainWindow::setVideoFullScreen()
             m_videoGroup->setLayout(m_videoLayout);
             m_layout->addWidget(m_videoGroup, 1);
         }
+        m_screenSaverInhibitor->inhibit(false);
     } else {
         m_graphics->setParent(nullptr);
         m_screens = qApp->screens();
@@ -370,6 +374,7 @@ void MainWindow::setVideoFullScreen()
             m_layout->invalidate();
             QTimer::singleShot(50, this, &MainWindow::fixSize);
         }
+        m_screenSaverInhibitor->inhibit(true);
     }
 }
 

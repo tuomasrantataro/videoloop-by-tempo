@@ -150,6 +150,11 @@ target_link_libraries(Track
                 PulseAudioWatcher
 )
 
+add_library(ScreenSaverInhibitor screensaverinhibitor.cpp)
+target_link_libraries(ScreenSaverInhibitor
+    PUBLIC      Qt5::Core
+                Qt5::DBus)
+
 add_library(MainWindow mainwindow.cpp)
 add_dependencies(MainWindow RhythmExtractor)
 target_link_libraries(MainWindow
@@ -162,6 +167,7 @@ target_link_libraries(MainWindow
                 OpenGLWidget2
                 ModelLoader
                 GraphicsWidget
+                ScreenSaverInhibitor
 )
 
 add_executable(videoloop-by-tempo main.cpp)
