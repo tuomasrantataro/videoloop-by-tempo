@@ -356,6 +356,7 @@ void MainWindow::setVideoFullScreen()
             m_layout->addWidget(m_videoGroup, 1);
         }
         m_screenSaverInhibitor->inhibit(false);
+        m_graphics->setCursor(Qt::ArrowCursor);
     } else {
         m_graphics->setParent(nullptr);
         m_screens = qApp->screens();
@@ -375,6 +376,7 @@ void MainWindow::setVideoFullScreen()
             QTimer::singleShot(50, this, &MainWindow::fixSize);
         }
         m_screenSaverInhibitor->inhibit(true);
+        m_graphics->setCursor(Qt::BlankCursor);
     }
 }
 
