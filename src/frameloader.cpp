@@ -1,5 +1,7 @@
 #include "frameloader.h"
 
+#include <QImageReader>
+
 ReadWorker::ReadWorker(QString frameFolderPath) : m_frameFolderPath(frameFolderPath)
 {
 
@@ -47,10 +49,19 @@ int FrameLoader::getFrameCount(QString folderName)
     QString folderPath = m_frameFolderPath + '/' + folderName;
 
     QStringList fileNames = QDir(folderPath).entryList(QStringList() << "*.jpg" << "*.JPG" << "*.png" << "*.PNG" << "*.gif" << ".*GIF", QDir::Files);
-        
-    int frameCount = fileNames.count();
+    
+    QString fileName = fileNames.first();
+    QString fileType = fileName.split('.').last().toLower();
+    
+    if (fileType == "gif") {
+        QImageReader reader(folderPath + '/' + fileName);
+        return reader.imageCount();
+    }
 
-    return frameCount;
+    else {
+        int frameCount = fileNames.count();
+        return frameCount;
+    }
         
 }
 
@@ -59,24 +70,42 @@ void FrameLoader::loadFrames(QString folderName, QVector<QImage> *frames, int am
     frames->clear();
     QString path = m_frameFolderPath + '/' + folderName;
 
-    QStringList frameNames = QDir(path).entryList(QStringList() << "*.jpg" << "*.JPG" << "*.png" << "*.PNG", QDir::Files);
+    QStringList frameNames = QDir(path).entryList(QStringList() << "*.jpg" << "*.JPG" << "*.png" << "*.PNG" << "*.gif" << "*.GIF", QDir::Files);
 
-    frames->reserve(frameNames.size());
+    frames->reserve(getFrameCount(folderName));
 
     int counter = amount;
 
-    for (QString filename : frameNames) {
-        QString filePath = path + '/' + filename;
-        QImage frame = QImage(filePath) .convertToFormat(QImage::Format_RGBA8888)
-                                        .mirrored();
+    QString fileName = frameNames.first();
+    QString fileType = fileName.split('.').last().toLower();
 
-        //QImage scaledFrame = scaleFrame(frame);
+    if (fileType == "gif") {
+        QImageReader reader(path + '/' + fileName);
 
-        frames->push_back(frame);
+        while (--counter >= 0) {
+            QImage img = reader.read();
+            if (!img.isNull()) {
+                frames->push_back(img);
+            }
+            else {
+                break;
+            }
+        }
+    }
+    else {
+        for (QString filename : frameNames) {
+            QString filePath = path + '/' + filename;
+            QImage frame = QImage(filePath) .convertToFormat(QImage::Format_RGBA8888)
+                                            .mirrored();
 
-        // if amount <= 0 -> load all frames
-        if (--counter == 0) {
-            break;
+            //QImage scaledFrame = scaleFrame(frame);
+
+            frames->push_back(frame);
+
+            // if amount <= 0 -> load all frames
+            if (--counter == 0) {
+                break;
+            }
         }
     }
 }
@@ -86,23 +115,44 @@ void ReadWorker::readFrames(QString folderName)
 {
     QString path = m_frameFolderPath + '/' + folderName;
 
-    QStringList frameNames = QDir(path).entryList(QStringList() << "*.jpg" << "*.JPG" << "*.png" << "*.PNG", QDir::Files);
+    QStringList frameNames = QDir(path).entryList(QStringList() << "*.jpg" << "*.JPG" << "*.png" << "*.PNG" << "*.gif" << "*.GIF", QDir::Files);
 
     QVector<QImage> frames;
-    frames.reserve(frameNames.size());
 
-    for (QString filename : frameNames) {
-        QString filePath = path + '/' + filename;
-        QImage frame = QImage(filePath) .convertToFormat(QImage::Format_RGBA8888)
-                                        .mirrored();
+    QString fileName = frameNames.first();
+    QString fileType = fileName.split('.').last().toLower();
 
-        //QImage scaledFrame = scaleFrame(frame);
+    if (fileType == "gif") {
+        QImageReader reader(path + '/' + fileName);
 
-        frames.push_back(frame);
-
+        while (true) {
+            QImage img = reader.read();
+            if (!img.isNull()) {
+                frames.push_back(
+                    img .convertToFormat(QImage::Format_RGBA8888)
+                        .mirrored());
+            }
+            else {
+                break;
+            }
+        }
     }
-    emit readReady(folderName, frames);
+    else {
+        frames.reserve(frameNames.size());
 
+        for (QString filename : frameNames) {
+            QString filePath = path + '/' + filename;
+            QImage frame = QImage(filePath) .convertToFormat(QImage::Format_RGBA8888)
+                                            .mirrored();
+
+            //QImage scaledFrame = scaleFrame(frame);
+
+            frames.push_back(frame);
+
+        }
+    }
+
+    emit readReady(folderName, frames);
 }
 
 QImage FrameLoader::scaleFrame(QImage frame)

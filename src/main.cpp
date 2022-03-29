@@ -51,13 +51,13 @@ bool validateDirectories()
         for (auto it = videoLoops.begin(); it != videoLoops.end(); it++) {
             QString path = "./assets/frames/" + *it + "/";
             QDir frameDir = QDir(path);
-            QStringList frames = frameDir.entryList(QStringList() << "*.jpg" << "*.JPG" << "*.png" << "*.PNG", QDir::Files);
+            QStringList frames = frameDir.entryList(QStringList() << "*.jpg" << "*.JPG" << "*.png" << "*.PNG" << "*.gif" << "*.GIF", QDir::Files);
             if (frames.isEmpty()) {
                 ret = false;
                 qInfo("\nERROR: Empty frame folder: %s", qPrintable(path));
                 qInfo("Please add frames or remove the folder\n");
             } else {
-                qDebug("Found %d frames in folder %s", frames.size(), qPrintable(path));
+                qDebug("Found %d files in folder %s", frames.size(), qPrintable(path));
             }
         }
     }

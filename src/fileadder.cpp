@@ -7,7 +7,7 @@ FileAdder::FileAdder(QWidget *parent) : QWidget(parent)
 
 void FileAdder::openDialog()
 {
-    m_fileNames = QFileDialog::getOpenFileNames(this, tr("Open Images"), QDir::homePath(), tr("Image Files (*.png *.jpg)"), 0, QFileDialog::DontUseNativeDialog);
+    m_fileNames = QFileDialog::getOpenFileNames(this, tr("Open Images"), QDir::homePath(), tr("Image Files (*.png *.jpg *gif)"), 0, QFileDialog::DontUseNativeDialog);
 
     if (!m_fileNames.isEmpty()) {
         emit filenamesReady();
