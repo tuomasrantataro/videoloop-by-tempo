@@ -14,10 +14,11 @@ TODO:
             - Use timestamps from song change and inside the widget to match beats
 - Improve OpenGLWidget
     - Currently the widget renders textures on a surface which covers the widget/screen
-    - Create test implementation where rendering textures on 3D model
     - Add mode where there's only 1 picture but zoom it in/out along with music tempo
         - Should be easy-ish with shaders
 - Fix running the program on Wayland
     - fix with Qt6 update when qtwayland should be in a better shape.
-- Do something to gui.h/cpp. It's too big and messy.
-- GIF format for loops
+
+Graphicswidget
+	- opengl/vulkan window
+	- graphics moving controls?
