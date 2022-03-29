@@ -20,6 +20,7 @@
 #include "tempo.h"
 #include "track.h"
 #include "screensaverinhibitor.h"
+#include "fileadder.h"
 
 
 #include "graphicswidget.h"
@@ -70,6 +71,8 @@ private slots:
 private:
     void initUI();
 
+    void updateVideoLoopNames(QString newFolder);
+
     // UI members
     GraphicsWidget *m_graphics;
 
@@ -101,6 +104,9 @@ private:
     QCheckBox *m_reverseFramesCheckBox;
     QComboBox *m_screenSelect;
     QList<QScreen*> m_screens;
+
+    QPushButton *m_fileAddButton;
+    FileAdder *m_fileAdder;
     
     QShortcut *m_keySpacebar;
 

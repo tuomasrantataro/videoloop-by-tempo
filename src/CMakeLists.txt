@@ -155,6 +155,11 @@ target_link_libraries(ScreenSaverInhibitor
     PUBLIC      Qt5::Core
                 Qt5::DBus)
 
+add_library(FileAdder fileadder.cpp)
+target_link_libraries(FileAdder
+    PUBLIC      Qt5::Core
+                Qt5::Widgets)
+
 add_library(MainWindow mainwindow.cpp)
 add_dependencies(MainWindow RhythmExtractor)
 target_link_libraries(MainWindow
@@ -168,6 +173,7 @@ target_link_libraries(MainWindow
                 ModelLoader
                 GraphicsWidget
                 ScreenSaverInhibitor
+                FileAdder
 )
 
 add_executable(videoloop-by-tempo main.cpp)

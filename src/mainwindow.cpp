@@ -232,6 +232,11 @@ void MainWindow::initUI()
     //connect(m_loopSelect, &QComboBox::textHighlighted, m_graphics, &GraphicsWidget::loadFrames);
     connect(m_loopSelect, &QComboBox::textHighlighted, m_graphics, &GraphicsWidget::loadFutureFrames);
 
+    m_fileAdder = new FileAdder(this);
+    m_fileAddButton = new QPushButton("Add new video loop", this);
+    connect(m_fileAddButton, &QPushButton::pressed, m_fileAdder, &FileAdder::openDialog);
+    connect(m_fileAdder, &FileAdder::filesCopied, this, &MainWindow::updateVideoLoopNames);
+
     QLabel *loopLabel = new QLabel(tr("Video:"));
     QHBoxLayout *loopLayout = new QHBoxLayout;
     loopLayout->addWidget(loopLabel, 1);
@@ -241,10 +246,11 @@ void MainWindow::initUI()
     m_videoLayout->addWidget(m_startFullScreenCheckBox, 0, 0, 1, 3);
     m_videoLayout->addWidget(m_tempoControlsCheckBox, 1, 0, 1, 3);
     m_videoLayout->addWidget(m_reverseFramesCheckBox, 2, 0, 1, 3);
-    m_videoLayout->addWidget(loopLabel, 3, 0);
-    m_videoLayout->addWidget(m_loopSelect, 3, 1, 1, 2);
-    m_videoLayout->addWidget(screenLabel, 4, 0);
-    m_videoLayout->addWidget(m_screenSelect, 4, 1, 1, 2);
+    m_videoLayout->addWidget(m_fileAddButton, 3, 0);
+    m_videoLayout->addWidget(loopLabel, 4, 0);
+    m_videoLayout->addWidget(m_loopSelect, 4, 1, 1, 2);
+    m_videoLayout->addWidget(screenLabel, 5, 0);
+    m_videoLayout->addWidget(m_screenSelect, 5, 1, 1, 2);
     m_videoGroup->setLayout(m_videoLayout);
 
     // Top level Layout
@@ -259,6 +265,25 @@ void MainWindow::initUI()
     m_keySpacebar = new QShortcut(this);
     m_keySpacebar->setKey(Qt::Key_Space);
     connect(m_keySpacebar, &QShortcut::activated, this, &MainWindow::toggleManualTempo);
+}
+
+void MainWindow::updateVideoLoopNames(QString newFolder)
+{
+    qDebug() << "updateVideoLoopNames start";
+    m_loopSelect->addItem(newFolder);
+    //QDir directory("./assets/frames");
+    //QStringList videoLoops = directory.entryList(QDir::NoDotAndDotDot | QDir::Dirs);
+    //m_loopSelect->clear();
+    //for (auto it = videoLoops.begin(); it != videoLoops.end(); it++) {
+    //    m_loopSelect->addItem(*it);
+    //}
+    //if (videoLoops.contains(m_settings->getVideoLoopName())) {
+    //    m_loopSelect->setCurrentText(m_settings->getVideoLoopName());
+    //} else {
+    //    m_settings->setVideoLoopName(videoLoops[0]);
+    //}
+
+    qDebug() << "updateVideoLoopNames end";
 }
 
 void MainWindow::updateTempo(double tempo)
