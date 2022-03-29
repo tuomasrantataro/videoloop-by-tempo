@@ -33,7 +33,8 @@ int FrameLoader::getMaxFrames()
     for (QString folderName : m_frameFolderNames) {
         QString folderPath = m_frameFolderPath + '/' + folderName;
 
-        int frameCount = QDir(folderPath).entryList(QStringList() << "*.jpg" << "*.JPG" << "*.png" << "*.PNG", QDir::Files).count();
+        int frameCount = getFrameCount(folderName);
+
         if (frameCount > maxFrames) {
             maxFrames = frameCount;
         }
@@ -45,7 +46,11 @@ int FrameLoader::getFrameCount(QString folderName)
 {
     QString folderPath = m_frameFolderPath + '/' + folderName;
 
-    return QDir(folderPath).entryList(QStringList() << "*.jpg" << "*.JPG" << "*.png" << "*.PNG", QDir::Files).count();
+    QStringList fileNames = QDir(folderPath).entryList(QStringList() << "*.jpg" << "*.JPG" << "*.png" << "*.PNG" << "*.gif" << ".*GIF", QDir::Files);
+        
+    int frameCount = fileNames.count();
+
+    return frameCount;
         
 }
 
