@@ -17,7 +17,7 @@ Install development packages with `apt` or some other package manager: `xargs su
     - `libpulse-dev`
 - For Essentia:
     - `libfftw3-dev libeigen3-dev`
-    - On Ubuntu 20.04 at least, install `python-is-python3` to make /bin/python available
+    - Essentia's build system needs an older python version (works with 3.7) runnable with the `python` command. Install that version and set `/usr/bin/python` to point to it with `update-alternatives`
 
 Build with cmake
 - `mkdir build`
